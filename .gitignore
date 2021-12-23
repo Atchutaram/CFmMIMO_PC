@@ -1,0 +1,10 @@
+# ignore all .txt files
+# *.txt
+*.npy
+*.png
+*.pkl
+*.pt
+*.out
+
+# ignore the following folders and their content
+venv/
