@@ -14,9 +14,7 @@ def get_sim_params(filename):
 
 
 def setup_sim(argv, triton = True):
-    # from schedulers.sim_params import SimulationParameters, OperatingModes
-    from .sim_params import SimulationParameters, OperatingModes
-    # from sim_params import SimulationParameters, OperatingModes
+    from schedulers.sim_params import SimulationParameters, OperatingModes
     
     if triton:
         root = os.path.join('//data.triton.aalto.fi', 'work', 'kochark1', 'CFmMIMO_PC_LS')
