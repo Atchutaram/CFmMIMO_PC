@@ -29,38 +29,50 @@ class OperatingModes(IntEnum):
 
 
 class SimulationParameters:
-    def __init__(self, number_of_samples = 20, operation_mode = OperatingModes.training_mode, scenario=1):
+    def __init__(self, root, number_of_samples = 20, operation_mode = OperatingModes.training_mode, scenario=1):
         
         self.number_of_samples = number_of_samples
         self.operation_mode = operation_mode
-        self.model_folder = 'Models_sc' + scenario
+        self.model_folder = f'models_sc_{scenario}'
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.root_path = os.path.join('//data.triton.aalto.fi', 'work', 'kochark1', 'CFmMIMO_PC_LS')
-        self.base_folder = "data_and_results_sc" + scenario
+        self.root_path = root
+        self.base_folder = 'data_logs_training' if self.operation_mode == OperatingModes.training_mode else 'data_logs_testing'
         self.scenario = scenario
         
         if not os.path.exists(self.root_path):
+            print(self.root_path)
             print('root_path failure!')
             sys.exit()
-        self.model_folder_path = os.path.join(self.root_path, self.model_folder)
-        self.model_file_name = 'model_' + str(datetime.datetime.now().date()) + '_' + str(datetime.datetime.now().time()).replace(':', '_') + '.pth'
+        
         self.base_folder_path = os.path.join(self.root_path, self.base_folder)
-        self.common_folder = 'data_and_results_training' if self.operation_mode == OperatingModes.training_mode else 'data_and_results_testing'
-        self.common_folder_path = os.path.join(self.base_folder_path, self.common_folder)
-        self.data_folder = os.path.join(self.common_folder_path, "dataSet")
-        self.results_folder = os.path.join(self.common_folder_path, "results")
+        self.model_folder_path = os.path.join(self.root_path, self.model_folder)
+        self.data_folder = os.path.join(self.base_folder_path, "betas")
+        self.params_folder = os.path.join(self.base_folder_path, "params")
+        if not operation_mode==OperatingModes.training_mode:
+            self.results_folder = os.path.join(self.base_folder_path, "mus")
+        else:
+            self.grad_inps_folder = os.path.join(self.base_folder_path, "grad_inps")
+            self.grads_folder = os.path.join(self.base_folder_path, "grads")
+        
+        self.model_file_name = 'model_' + str(datetime.datetime.now().date()) + '_' + str(datetime.datetime.now().time()).replace(':', '_') + '.pth'
 
         if not self.operation_mode == OperatingModes.plotting_only:
             if not os.path.exists(self.base_folder_path):
                 os.makedirs(self.base_folder_path)  # root_path already exists and verified.
-            
-            handle_deletion_and_creation(self.common_folder_path)
-            handle_deletion_and_creation(self.results_folder)
+
+            if not os.path.exists(self.params_folder):
+                os.makedirs(self.params_folder)
+
             handle_deletion_and_creation(self.data_folder)
+            if not operation_mode==OperatingModes.training_mode:
+                handle_deletion_and_creation(self.results_folder)
+            else:
+                handle_deletion_and_creation(self.grad_inps_folder)
+                handle_deletion_and_creation(self.grads_folder)
         
         if not os.path.exists(self.model_folder_path):
-            if self.operation_mode == OperatingModes.data_handling_only or OperatingModes.testing_mode:
+            if self.operation_mode == OperatingModes.data_handling_only or self.operation_mode == OperatingModes.testing_mode:
                 print('Train the neural network before testing!')
                 sys.exit()
             os.makedirs(self.model_folder_path)  # root_path already exists and verified.

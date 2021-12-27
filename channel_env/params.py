@@ -3,7 +3,7 @@ import os
 import sys
 import warnings
 
-from schedulers.sim_params import SimulationParameters, OperatingModes
+from schedulers.sim_params import OperatingModes
 
 
 def compute_laplace_mat(ap_positions_list, device):
@@ -36,7 +36,7 @@ def folder_string_generator(number_of_users, number_of_access_points):
 
 
 class SystemParameters:
-    def __init__(self, param_D = 1, number_of_users = 20, access_point_density = 100):
+    def __init__(self, simulation_parameters, param_D = 1, number_of_users = 20, access_point_density = 100):
         # Fixed parameters
         self.param_L = 140.715087  # dB
         self.d_0 = 0.01  # in Km
@@ -57,7 +57,7 @@ class SystemParameters:
 
         # Scenario based parameters (Following is a set of parameters for a default scenario). These can be over written in simulate_Communications module
         self.number_of_antennas = 1  # N
-        self.param_D = torch.tensor(param_D, requires_grad=False, device=SimulationParameters.device, dtype=torch.float32)  # D
+        self.param_D = torch.tensor(param_D, requires_grad=False, device=simulation_parameters.device, dtype=torch.int)  # D
         self.number_of_users = number_of_users
         self.access_point_density = access_point_density
 
@@ -66,14 +66,14 @@ class SystemParameters:
         self.sub_folder_AP_user_mapping = []
 
         # to set other derived parameters of the scenario (special or default)
-        self.number_of_access_points = access_point_density * self.param_D
+        self.number_of_access_points = access_point_density * self.param_D.item()
         self.area_width = torch.sqrt(self.param_D)  # in Km
         self.area_height = self.area_width
 
         random_mat = torch.normal(0, 1, (self.T_p, self.T_p))
         u, _, _ = torch.linalg.svd(random_mat)
         phi_orth = u
-        phi = torch.zeros([self.number_of_users, self.T_p], requires_grad=False, device=SimulationParameters.device, dtype=torch.float32) * (1 + 1j)
+        phi = torch.zeros([self.number_of_users, self.T_p], requires_grad=False, device=simulation_parameters.device, dtype=torch.float32) * (1 + 1j)
         for k in range(self.number_of_users):
             i = torch.randint(0, self.T_p, [1]).item()
             phi[k] = phi_orth[:][i]
@@ -81,22 +81,20 @@ class SystemParameters:
 
         self.AP_configs = []
         self.laplace_matrices = []
-        ap_positions_list = torch.zeros([self.number_of_access_points, 2], requires_grad=False, device=SimulationParameters.device, dtype=torch.float32)
+        ap_positions_list = torch.zeros([self.number_of_access_points, 2], requires_grad=False, device=simulation_parameters.device, dtype=torch.float32)
         for access_point_id in range(self.number_of_access_points):
             torch.manual_seed(seed=0 * self.number_of_access_points + access_point_id)
             ap_positions_list[access_point_id, :] = torch.tensor([self.area_width, self.area_height], device='cpu', requires_grad=False, dtype=torch.float32) * (torch.rand((2,), device='cpu', requires_grad=False, dtype=torch.float32)-0.5)
-        self.laplace_matrices.append(compute_laplace_mat(ap_positions_list, SimulationParameters.device))
+        self.laplace_matrices.append(compute_laplace_mat(ap_positions_list, simulation_parameters.device))
         self.AP_configs.append(ap_positions_list)
 
-        self.AP_configs = torch.cat(self.AP_configs).to(SimulationParameters.device)
-
-        self.AP_configs = torch.unsqueeze(self.AP_configs, 0)
+        self.AP_configs = torch.cat(self.AP_configs).to(simulation_parameters.device)
 
         # Initialize sub-folder list
         self.sub_folder_list = []
         self.sub_folder_AP_user_mapping = []
-        if SimulationParameters.operation_mode == OperatingModes.plotting_only:
-            if not os.path.exists(SimulationParameters.results_folder):
+        if simulation_parameters.operation_mode == OperatingModes.plotting_only:
+            if not os.path.exists(simulation_parameters.results_folder):
                 print('Not results. Switch to Testing mode and fixed = True!')
                 sys.exit()
         

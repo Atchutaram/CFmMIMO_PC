@@ -2,7 +2,6 @@ import pickle
 import sys
 import os
 
-default_file_name = os.path.join('//data.triton.aalto.fi', 'work', 'kochark1', 'CFmMIMO_PC_LS', 'data_logs', 'sim_params', 'sim_params_1.pkl')
 
 def save_object(obj, filename):
     with open(filename, 'wb') as outp:  # Overwrites any existing file.
@@ -14,20 +13,40 @@ def get_sim_params(filename):
         return pickle.load(inp)
 
 
-def setup_sim(argv):
-    from sim_params import SimulationParameters, OperatingModes
+def setup_sim(argv, triton = True):
+    # from schedulers.sim_params import SimulationParameters, OperatingModes
+    from .sim_params import SimulationParameters, OperatingModes
+    # from sim_params import SimulationParameters, OperatingModes
+    
+    if triton:
+        root = os.path.join('//data.triton.aalto.fi', 'work', 'kochark1', 'CFmMIMO_PC_LS')
+    else:
+        root = os.getcwd()
+    
+    simulation_parameters = None
     if argv:
-        number_of_samples, operation_mode, scenario, filename = argv
+        number_of_samples, operation_mode, scenario = argv
+        filename = f'sim_params_{scenario}.pkl'
         for mode in OperatingModes:
             if mode == operation_mode:
                 operation_mode = mode
-        simulation_parameters = SimulationParameters(number_of_samples, operation_mode, scenario)
+        simulation_parameters = SimulationParameters(root, number_of_samples, operation_mode, scenario)
     else:
-        simulation_parameters = SimulationParameters()
-        filename = default_file_name
+        filename = 'sim_params_1.pkl'
+        simulation_parameters = SimulationParameters(root)
+    
+    filename = os.path.join(simulation_parameters.params_folder, filename)
     save_object(simulation_parameters, filename)
 
 
 if __name__ == '__main__':
     argv = sys.argv[1:]
-    setup_sim(argv)  # argv = number_of_samples, operation_mode, scenario, filename
+    setup_sim(argv)  # argv = number_of_samples, operation_mode, scenario
+else:
+    number_of_samples = 4  # also change in schedule_datagen.sh (and others)
+    operation_mode = 1  # training_mode: 1
+    scenario = 1
+    argv = number_of_samples, operation_mode, scenario
+    setup_sim(argv, triton = False)
+
+print('Done!')

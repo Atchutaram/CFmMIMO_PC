@@ -51,21 +51,25 @@ def large_scale_fading_computing(L, d_0, d_1, sigma_sh, d_mat, device):
     betas = 10 ** (PL / 10)
     return betas
 
-def data_gen(file_path, sample_id, scenario, device):
+def data_gen(simulation_parameters, sample_id):
     from .params import SystemParameters
     
+    scenario = simulation_parameters.scenario
+    file_path = simulation_parameters.data_folder
+    device = simulation_parameters.device
+
     if scenario==1:
         inp_param_D = 1
         inp_number_of_users = 20
         inp_access_point_density = 100
-        system_parameters = SystemParameters(inp_param_D, inp_number_of_users, inp_access_point_density)
+        system_parameters = SystemParameters(simulation_parameters, inp_param_D, inp_number_of_users, inp_access_point_density)
     elif scenario==2:
         inp_param_D = 1
         inp_number_of_users = 500
         inp_access_point_density = 2000
-        system_parameters = SystemParameters(inp_param_D, inp_number_of_users, inp_access_point_density)
+        system_parameters = SystemParameters(simulation_parameters, inp_param_D, inp_number_of_users, inp_access_point_density)
     else:
-        system_parameters = SystemParameters()
+        system_parameters = SystemParameters(simulation_parameters)
 
 
     if os.path.exists(os.path.join(file_path, f'betas_sample{sample_id}.pt')):
@@ -91,3 +95,4 @@ def data_gen(file_path, sample_id, scenario, device):
     # Save the RX data and original channel matrix.
     m = {'betas': betas.to('cpu'), }
     torch.save(m, os.path.join(file_path, f'betas_sample{sample_id}.pt'))
+    
