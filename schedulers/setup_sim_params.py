@@ -16,7 +16,7 @@ def get_sim_params(filename):
 def setup_sim(argv, triton = True):
     if triton:
         from sim_params import SimulationParameters, OperatingModes
-        root = os.path.join('scratch', 'work', 'kochark1', 'CFmMIMO_PC_LS')
+        root = os.path.join('/scratch', 'work', 'kochark1', 'CFmMIMO_PC_LS')
     else:
         from schedulers.sim_params import SimulationParameters, OperatingModes
         root = os.getcwd()
@@ -46,5 +46,3 @@ else:
     scenario = 1
     argv = number_of_samples, operation_mode, scenario
     setup_sim(argv, triton = False)
-
-print('Done!')
