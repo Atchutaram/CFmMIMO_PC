@@ -57,7 +57,7 @@ class SystemParameters:
 
         # Scenario based parameters (Following is a set of parameters for a default scenario). These can be over written in simulate_Communications module
         self.number_of_antennas = 1  # N
-        self.param_D = torch.tensor(param_D, requires_grad=False, device=simulation_parameters.device, dtype=torch.int)  # D
+        self.param_D = torch.tensor(param_D, requires_grad=False, device=simulation_parameters.device, dtype=torch.float32)  # D
         self.number_of_users = number_of_users
         self.access_point_density = access_point_density
 
@@ -66,7 +66,7 @@ class SystemParameters:
         self.sub_folder_AP_user_mapping = []
 
         # to set other derived parameters of the scenario (special or default)
-        self.number_of_access_points = access_point_density * self.param_D.item()
+        self.number_of_access_points = int(access_point_density * self.param_D.item())
         self.area_width = torch.sqrt(self.param_D)  # in Km
         self.area_height = self.area_width
 
