@@ -14,11 +14,10 @@ def get_sim_params(filename):
 
 
 def setup_sim(argv, triton = True):
+    from simulation_parameters.sim_params import SimulationParameters, OperatingModes
     if triton:
-        from sim_params import SimulationParameters, OperatingModes
         root = os.path.join('/scratch', 'work', 'kochark1', 'CFmMIMO_PC_LS')
     else:
-        from schedulers.sim_params import SimulationParameters, OperatingModes
         root = os.getcwd()
     
     simulation_parameters = None

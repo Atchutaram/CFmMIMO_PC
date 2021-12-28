@@ -3,7 +3,7 @@ import os
 import sys
 import warnings
 
-from schedulers.sim_params import OperatingModes
+from simulation_parameters.sim_params import OperatingModes
 
 
 def compute_laplace_mat(ap_positions_list, device):
