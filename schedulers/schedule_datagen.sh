@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --time=00:30:00
-#SBATCH --mem-per-cpu=1M
+#SBATCH --mem-per-node=1M
 #SBATCH --job-name=schedule-datagen
 #SBATCH --output=script_logs/schedule_datagen_%a.out
 #SBATCH --array=0-4

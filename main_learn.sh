@@ -6,6 +6,6 @@
 
 
 first_id=$(sbatch --parsable ./schedulers/setup_sim_params.sh)
-# second_id=$(sbatch --dependency=afterok:$first_id ./schedulers/schedule_datagen.sh)
+second_id=$(sbatch --dependency=afterok:$first_id ./schedulers/schedule_datagen.sh)
 
 # sbatch --dependency=afterok:$second_id ./schedulers/learn.sh
