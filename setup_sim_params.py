@@ -16,7 +16,6 @@ def get_sim_params(filename):
 def setup_sim(argv, triton = True):
     from simulation_parameters.sim_params import SimulationParameters, OperatingModes
     if triton:
-        print('Trace 1: triton mode')
         root = os.path.join('/scratch', 'work', 'kochark1', 'CFmMIMO_PC_LS')
     else:
         root = os.getcwd()
@@ -24,14 +23,13 @@ def setup_sim(argv, triton = True):
     
     simulation_parameters = None
     if argv:
-        number_of_samples, inp_mode, scenario = argv
+        number_of_samples, operation_mode, scenario = argv
 
         filename = f'sim_params_{scenario}.pkl'
-        for id, mode in enumerate(OperatingModes, 1):
-            print('Trace 2: ', id, inp_mode, mode)
-            if id == int(inp_mode):
+        for mode in OperatingModes:
+            if mode == int(operation_mode):
                 operation_mode = mode
-                print('Trace 3: ', operation_mode)
+                break
         simulation_parameters = SimulationParameters(root, number_of_samples, operation_mode, scenario)
     else:
         filename = 'sim_params_1.pkl'
