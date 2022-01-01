@@ -29,7 +29,7 @@ def setup_sim(argv, triton = True):
         filename = f'sim_params_{scenario}.pkl'
         for id, mode in enumerate(OperatingModes, 1):
             print('Trace 2: ', id, inp_mode, mode)
-            if id == inp_mode:
+            if id == int(inp_mode):
                 operation_mode = mode
                 print('Trace 3: ', operation_mode)
         simulation_parameters = SimulationParameters(root, number_of_samples, operation_mode, scenario)
