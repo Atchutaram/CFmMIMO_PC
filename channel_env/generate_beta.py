@@ -60,7 +60,7 @@ def carefully_save_file(m, file):
         except:
             pass
         
-        time.sleep(2)
+        # time.sleep(2)
         if os.path.exists(file):
             break
 

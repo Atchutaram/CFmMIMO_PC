@@ -27,10 +27,12 @@ def setup_sim(argv, triton = True):
         for mode in OperatingModes:
             if mode == operation_mode:
                 operation_mode = mode
-        simulation_parameters = SimulationParameters(root, number_of_samples, operation_mode, scenario)
+        simulation_parameters = SimulationParameters()
+        simulation_parameters.explicit_initialization(root, number_of_samples, operation_mode, scenario)
     else:
         filename = 'sim_params_1.pkl'
-        simulation_parameters = SimulationParameters(root)
+        simulation_parameters = SimulationParameters()
+        simulation_parameters.explicit_initialization(root)
     
     filename = os.path.join(simulation_parameters.params_folder, filename)
     save_object(simulation_parameters, filename)
