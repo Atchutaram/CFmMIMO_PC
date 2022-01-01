@@ -27,23 +27,22 @@ def setup_sim(argv, triton = True):
         for mode in OperatingModes:
             if mode == operation_mode:
                 operation_mode = mode
-        simulation_parameters = SimulationParameters()
-        simulation_parameters.explicit_initialization(root, number_of_samples, operation_mode, scenario)
+        simulation_parameters = SimulationParameters(root, number_of_samples, operation_mode, scenario)
     else:
         filename = 'sim_params_1.pkl'
-        simulation_parameters = SimulationParameters()
-        simulation_parameters.explicit_initialization(root)
+        simulation_parameters = SimulationParameters(root)
     
     filename = os.path.join(simulation_parameters.params_folder, filename)
     save_object(simulation_parameters, filename)
 
-
-if __name__ == '__main__':
-    argv = sys.argv[1:]
-    setup_sim(argv)  # argv = number_of_samples, operation_mode, scenario
-else:
+def local_execution():
     number_of_samples = 4  # also change in schedule_datagen.sh (and others)
     operation_mode = 1  # training_mode: 1
     scenario = 1
     argv = number_of_samples, operation_mode, scenario
     setup_sim(argv, triton = False)
+
+
+if __name__ == '__main__':
+    argv = sys.argv[1:]
+    setup_sim(argv)  # argv = number_of_samples, operation_mode, scenario

@@ -29,7 +29,7 @@ class OperatingModes(IntEnum):
 
 
 class SimulationParameters:
-    def explicit_initialization(self, root, number_of_samples = 20, operation_mode = OperatingModes.training_mode, scenario=1):
+    def __init__(self, root, number_of_samples = 20, operation_mode = OperatingModes.training_mode, scenario=1):
         
         self.number_of_samples = number_of_samples
         self.operation_mode = operation_mode
