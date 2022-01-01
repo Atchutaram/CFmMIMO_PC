@@ -23,17 +23,13 @@ def setup_sim(argv, triton = True):
         root = os.getcwd()
     
     
-    for mode in OperatingModes:
-        print('Trace 2: ', mode)
-
     simulation_parameters = None
     if argv:
         number_of_samples, operation_mode, scenario = argv
-        print('Trace 3: operation_mode is ', operation_mode)
 
         filename = f'sim_params_{scenario}.pkl'
-        for mode in OperatingModes:
-            if mode == operation_mode:
+        for id, mode in enumerate(OperatingModes, 1):
+            if id == operation_mode:
                 operation_mode = mode
         simulation_parameters = SimulationParameters(root, number_of_samples, operation_mode, scenario)
     else:
