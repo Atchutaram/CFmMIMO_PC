@@ -52,17 +52,20 @@ def large_scale_fading_computing(L, d_0, d_1, sigma_sh, d_mat, device):
     return betas
 
 def carefully_save_file(m, file):
-    import time
     
-    while True:
-        try:
-            torch.save(m, file)
-        except:
-            pass
+    torch.save(m, file)
+    
+    # import time
+    
+    # while True:
+    #     try:
+    #         torch.save(m, file)
+    #     except:
+    #         pass
         
-        # time.sleep(2)
-        if os.path.exists(file):
-            break
+    #     # time.sleep(2)
+    #     if os.path.exists(file):
+    #         break
 
 def data_gen(simulation_parameters, sample_id):
     from .params import SystemParameters
