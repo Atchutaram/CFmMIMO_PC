@@ -5,7 +5,7 @@ from setup_sim_params import get_sim_params
 from channel_env.generate_beta import data_gen
 
 
-block_width = 200
+block_width = 500
 
 def run_block(simulation_parameters, block_id):
     for sample_id in range(block_id*block_width, (block_id+1)*block_width):
