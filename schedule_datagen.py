@@ -40,7 +40,7 @@ if __name__ == '__main__':
     sim_filename, block_id = argv
     simulation_parameters = get_sim_params(sim_filename)
 
-    run_block(simulation_parameters, block_id)
+    run_block(simulation_parameters, int(block_id))
     
     # Compute and display execution time.
     finish = time.perf_counter()
