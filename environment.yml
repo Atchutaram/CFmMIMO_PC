@@ -66,5 +66,4 @@ dependencies:
   - zstd=1.4.5
   - pip:
     - tqdm==4.58.0
-prefix: Z:\Desktop\Pycharm_all_projects\CFmMIMO_PC_LS\venv
 
