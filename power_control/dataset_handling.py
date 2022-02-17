@@ -8,12 +8,13 @@ class Mode(Enum):
     training = auto()
 
 class BetaDataset(Dataset):
-    def __init__(self, data_path, normalizer, mode, n_samples):
+    def __init__(self, data_path, normalizer, mode, n_samples, device):
         self.path = data_path
         _, _, files = next(os.walk(self.path))
         self.n_samples = min(len(list(filter(lambda k: 'betas' in k, files))), n_samples)
         self.sc = normalizer
         self.mode = mode
+        self.device = device
 
     def __getitem__(self, index):
         beta_file_name = f'betas_sample{index}.pt'
@@ -24,12 +25,12 @@ class BetaDataset(Dataset):
             return beta
         
         beta_torch = torch.log(beta_original)
-        beta_torch = torch.unsqueeze(beta_torch.reshape((-1,)), 0)
+        beta_torch = beta_torch.reshape((1, -1,))
         beta_torch = self.sc.transform(beta_torch)[0]
-        beta_torch = torch.from_numpy(beta_torch).to(dtype=torch.float32)
+        beta_torch = torch.from_numpy(beta_torch).to(dtype=torch.float32, device=self.device)
         beta_torch = beta_torch.reshape(beta_original.shape)
 
-        return beta_torch, beta_original
+        return beta_torch, beta_original.to(device=self.device)
 
     def __len__(self):
         return self.n_samples

@@ -5,7 +5,11 @@
 *.pkl
 *.pt
 *.out
+*.pth
 
 # ignore the following folders and their content
 venv/
 __pycache__/
+models_sc_1/
+models_sc_2/
+.vscode/

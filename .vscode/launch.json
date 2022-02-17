@@ -8,8 +8,9 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "${main_learn}",
-            "console": "integratedTerminal"
+            "program": "${CFmMIMO_PC}",
+            "console": "integratedTerminal",
+            "args":["--mode", "3"]
         }
     ]
 }
