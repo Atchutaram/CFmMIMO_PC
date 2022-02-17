@@ -15,6 +15,20 @@ def load_object(filename):
     with open(filename, 'rb') as inp:  # Overwrites any existing file.
         return pickle.load(inp)
 
+
+def delete_folder(*args):
+    for folder in args:
+        for _ in range(5):
+            if not os.path.exists(folder):
+                break
+            shutil.rmtree(folder, ignore_errors=False, onerror=None)
+            time.sleep(0.5)
+
+        if os.path.exists(folder):
+            print(f"\n'{folder}' folder was not deleted")
+            sys.exit()
+
+
 def handle_deletion_and_creation(folder, number_of_samples=None, retain=False, force_retain= False):
     if os.path.exists(folder):
         if force_retain:
@@ -32,15 +46,7 @@ Do you want to overwrite the data folder [y/n]? """)
                     print(f'Data folder retain cannot be performed! Either set the set the --samples option to {old_number_of_samples} or --retain option to 0.')
                     sys.exit()
 
-    for _ in range(5):
-        if not os.path.exists(folder):
-            break
-        shutil.rmtree(folder, ignore_errors=False, onerror=None)
-        time.sleep(0.5)
-
-    if os.path.exists(folder):
-        print(f"\n'{folder}' folder was not deleted")
-        sys.exit()
+    delete_folder(folder)
     
     os.mkdir(folder)
 

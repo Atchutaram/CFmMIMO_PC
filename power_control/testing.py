@@ -175,7 +175,7 @@ def test_and_plot(simulation_parameters, system_parameters, plotting_only):
         avg_latency = 0
         device = simulation_parameters.device
 
-        from .nn_setup import CommonParameters
+        from .models.nn_setup import CommonParameters
 
         CommonParameters.test_setup(system_parameters.number_of_access_points, system_parameters.number_of_users, simulation_parameters.scenario)
         model = load_the_latest_model_and_params_if_exists(model_folder_path, device, system_parameters, simulation_parameters.interm_folder, is_testing=True)

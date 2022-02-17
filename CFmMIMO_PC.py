@@ -23,6 +23,8 @@ def composite(x):
 
 default_number_of_samples = 2000
 testing_number_of_samples = 200
+default_number_of_samples = 20
+testing_number_of_samples = 20
 
 
 parser = argparse.ArgumentParser(description='Train or test the DNN for CFmMIMO downlink power control descreibed in the paper "CNN-Based Constrained Power Control Algorithm for the Downlink of Cell-Free Massive MIMO".')
@@ -34,10 +36,21 @@ parser.add_argument('-m', '--mode', choices=list(map(composite, OperatingModes))
 parser.add_argument('-sc', '--scenario', choices={"1", "2"}, help='Takes [1-2] as input to pick one of the two scenarios described in the paper.', default="1", metavar='scenario', )
 parser.add_argument('-ho', '--host', choices={"0", "1"}, help='Choose 1 for triton and choose 0 for others. CHOICE 1 IS ONLY FOR THE AUTHOR OF THE CODE!', default="0", metavar='isTriton', )
 parser.add_argument('-r', '--retain', choices={"0", "1"}, help='Choose 1 to retain the input data for training and choose 0 for overwritting it.', default="1", metavar='retainData', )
-parser.add_argument('-mo', '--model', choices={"0", "1"}, help='TBD', default="0", metavar='TBD', )
+parser.add_argument('-c', '--clean', action='store_true', help='Clears data logs, results, plots, models, lightning_logs and sc.pkl. Other arguments will be ignored.', )
 
 args = parser.parse_args()
-number_of_samples, operating_mode, scenario, host, retain, _ = map(int, (args.samples, args.mode, args.scenario, args.host, args.retain, args.model, ))
+number_of_samples, operating_mode, scenario, host, retain, clean = map(int, (args.samples, args.mode, args.scenario, args.host, args.retain, args.clean ))
+
+if clean:
+    from sys import exit
+    from utils.utils import delete_folder
+
+    delete_folder('data_logs_training', 'data_logs_testing', 'lightning_logs', 'models_sc_1', 'models_sc_2', 'interm_models')
+    if os.path.isfile('sc.pkl'):
+        os.remove('sc.pkl')
+    
+    print("Cleaned 'data_logs_training', 'data_logs_testing', 'lightning_logs', 'models_sc_1', 'models_sc_2', 'interm_models', and 'sc.pkl'! ")
+    exit()
 
 operating_mode = list(OperatingModes)[operating_mode-1]  # Translating integers to the element of OperatingModes
 retain = (retain==1)  # Translating {0, 1} to {False, True}

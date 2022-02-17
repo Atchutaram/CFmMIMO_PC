@@ -26,9 +26,10 @@ def initialize_weights(m):
 
 
 def load_the_latest_model_and_params_if_exists(model_folder, device, system_parameters, interm_folder, is_testing=False):
-    from .model import NeuralNet
+    from .models.model import NeuralNet
+    from .gradient_handler import grads
     
-    model = NeuralNet(device, system_parameters, interm_folder)
+    model = NeuralNet(system_parameters, interm_folder, grads)
     model.apply(initialize_weights)
     model_file = find_the_latest_file(model_folder)
     

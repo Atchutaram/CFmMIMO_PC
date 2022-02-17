@@ -1,6 +1,6 @@
 import torch
 
-from .nn_setup import CommonParameters
+from .models.nn_setup import CommonParameters
 
 
 
