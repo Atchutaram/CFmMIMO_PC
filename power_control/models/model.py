@@ -2,14 +2,13 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import os
-import pytorch_lightning as pl
 
 from .dataset_handling import BetaDataset, Mode
 from .nn_setup import CommonParameters
 
 
-class NeuralNet(pl.LightningModule):
-    def __init__(self, system_parameters, interm_folder, grads):
+class NeuralNet(nn.Module):
+    def __init__(self, device, system_parameters, interm_folder, grads):
         super(NeuralNet, self).__init__()
         K = CommonParameters.K
         M = CommonParameters.M
@@ -34,16 +33,16 @@ class NeuralNet(pl.LightningModule):
         
 
         self.relu = nn.ReLU()
-        self.automatic_optimization = False
 
-        self.slack_variable_in = torch.rand((1,), requires_grad=True, dtype=torch.float32)
-        self.slack_variable = torch.zeros((1,), requires_grad=True, dtype=torch.float32)
+        self.slack_variable_in = torch.rand((1,), requires_grad=True, dtype=torch.float32, device = device)
+        self.slack_variable = torch.zeros((1,), requires_grad=True, dtype=torch.float32, device = device)
+        self.device = device
         self.n_samples = CommonParameters.n_samples
         self.system_parameters = system_parameters
+        self.to(self.device)
 
         self.interm_folder = interm_folder
         self.grads = grads
-        self.epoch_idx = 0
 
     def forward(self, x):
         encoded = self.encoder(torch.unsqueeze(x, 1))
@@ -54,35 +53,28 @@ class NeuralNet(pl.LightningModule):
         out = torch.squeeze(out, dim=1)
         return out
     
-    def training_step(self, batch, batch_idx):        
-        if batch_idx == 0 and self.epoch_idx == 0:
-            self.slack_variable_in = self.slack_variable_in.to(self.device)
-        
-        self.slack_variable = torch.tanh(self.slack_variable_in)
-
-        
-        opt = self.optimizers(use_pl_optimizer=True)
+    def training_step(self, beta_torch, beta_original, opt, epoch_id):
         opt.zero_grad()
-
-        betas, beta_original = batch
-        mus = self(betas)
+        self.slack_variable = torch.tanh(self.slack_variable_in)
+        mus = self(beta_torch)
 
         with torch.no_grad():
             [mus_grads, grad_wrt_slack, utility] = self.grads(beta_original, mus, CommonParameters.eta, self.slack_variable, self.device, self.system_parameters)
-            self.log('train_loss', -utility.mean(), on_step=True, on_epoch=True, prog_bar=True)
-            self.epoch_idx += (batch_idx == 0)
-
-            if self.epoch_idx % 10 == 0 and self.epoch_idx > 0:
-                interm_model_full_path = os.path.join(self.interm_folder, f'model_{self.epoch_idx}.pth')
-                torch.save(self.state_dict(), interm_model_full_path)
-
-        self.manual_backward(mus, None, gradient=[mus_grads, grad_wrt_slack])
+        
+        self.backward(mus, gradient=[mus_grads, grad_wrt_slack])
         opt.step()
 
-    def backward(self, loss, optimizer, optimizer_idx, *args, **kwargs):
-        [mus_grads, grad_wrt_slack_batch] = kwargs["gradient"]
+        if epoch_id % 10 == 0 and epoch_id > 0:
+            interm_model_full_path = os.path.join(self.interm_folder, f'model_{epoch_id}.pth')
+            torch.save(self.state_dict(), interm_model_full_path)
         
-        loss.backward(mus_grads)
+        return utility
+
+    def backward(self, mus, gradient):
+
+        [mus_grads, grad_wrt_slack_batch] = gradient
+        
+        mus.backward(mus_grads)
         for grad_wrt_slack in grad_wrt_slack_batch:
             self.slack_variable.backward(grad_wrt_slack, retain_graph=True)
 
