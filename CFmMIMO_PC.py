@@ -66,16 +66,16 @@ if not operating_mode == OperatingModes.TRAINING:
 
 cwd = os.getcwd()
 if host == 1:
-    root = os.path.join('/tmp', 'hsperfdata_kochark1', 'CFmMIMO_PC_CNN')
+    root = os.path.join('/tmp', 'hsperfdata_kochark1', 'CFmMIMO_PC')
     handle_deletion_and_creation(root)
 
-    triton_results_base = os.path.join('/scratch', 'work', 'kochark1', 'CFmMIMO_PC_CNN')
+    triton_results_base = os.path.join('/scratch', 'work', 'kochark1', 'CFmMIMO_PC')
     handle_deletion_and_creation(triton_results_base)
 else:
     root = cwd
     triton_results_base = None
 
-print("""\nWelcome to the CFmMIMO_PC_CNN code.
+print("""\nWelcome to the CFmMIMO_PC code.
 Try 'python main_learn.py -h' to learn about passing optional command line arguments.\n""")
 
 if __name__ == '__main__':    

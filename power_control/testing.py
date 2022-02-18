@@ -189,6 +189,18 @@ def run_power_control_algos(simulation_parameters, system_parameters, algo_list,
         latency[algo_name] = round(time_now - time_then, 6)
 
         _, SE[algo_name] = utility_computation(betas, mus, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)
+
+
+    if 'FCN' in algo_list:
+        algo_name = 'FCN'
+        model_name = 'FCN'
+
+        time_then = time.perf_counter()
+        mus = deploy(models[model_name], betas, model_name, device)
+        time_now = time.perf_counter()
+        latency[algo_name] = round(time_now - time_then, 6)
+
+        _, SE[algo_name] = utility_computation(betas, mus, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)
     
     return SE, latency
 

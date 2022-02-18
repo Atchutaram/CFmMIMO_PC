@@ -8,7 +8,7 @@ from sklearn.preprocessing import StandardScaler
 from .root_model import Mode, RootDataset, CommonParameters, RootNet
 
 
-MODEL_NAME = 'CNN'
+MODEL_NAME = 'FCN'
 
 class BetaDataset(RootDataset):
     def __init__(self, data_path, normalizer, mode, n_samples, device):
