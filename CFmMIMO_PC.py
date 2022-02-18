@@ -5,8 +5,8 @@ from parameters.sim_params import OperatingModes
 
 default_number_of_samples = 2000
 testing_number_of_samples = 200
-default_number_of_samples = 20
-testing_number_of_samples = 20
+# default_number_of_samples = 20
+# testing_number_of_samples = 20
 
 
 def check_positive(value):
@@ -94,7 +94,7 @@ if __name__ == '__main__':
         inp_number_of_users = 20
         inp_access_point_density = 100
         models_list = ['FCN', 'CNN', 'PCA', 'GFT', 'TP']
-        models_list = ['CNN',]
+        models_list = ['FCN', 'CNN']
     elif simulation_parameters.scenario==2:
         inp_param_D = 1
         inp_number_of_users = 500

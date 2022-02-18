@@ -84,26 +84,16 @@ class NeuralNet(RootNet):
         self.normalizer = HyperParameters.sc
         self.batch_size = HyperParameters.batch_size
         self.learning_rate = HyperParameters.learning_rate
-
-        K = HyperParameters.K
-        M = HyperParameters.M
-        OUT_CH = HyperParameters.OUT_CH
         
-        self.encoder = nn.Sequential(
-            nn.Conv2d(1, round(OUT_CH / 4), (3, 3), stride=(2, 2), padding=(1, 1)), # input channels, output channels, kernel size
+        self.input_size = HyperParameters.input_size
+        self.hidden_size = HyperParameters.input_size
+        self.output_shape = (-1, HyperParameters.M, HyperParameters.K)
+        
+        self.FCN = nn.Sequential(
+            nn.Linear(self.input_size, self.hidden_size),
             nn.ReLU(),
-            nn.Conv2d(round(OUT_CH / 4), round(OUT_CH / 2), (3, 3), stride=(2, 2), padding=(1, 1)), # input channels, output channels, kernel size
+            nn.Linear(self.hidden_size, self.input_size),
             nn.ReLU(),
-            nn.Conv2d(round(OUT_CH / 2), OUT_CH, (round(M / 4), round(K / 4))),
-            nn.ReLU(),
-        )
-
-        self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(OUT_CH, round(OUT_CH / 2), (round(M / 4), round(K / 4))),
-            nn.ReLU(),
-            nn.ConvTranspose2d(round(OUT_CH / 2), round(OUT_CH / 4), (3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1)),
-            nn.ReLU(),
-            nn.ConvTranspose2d(round(OUT_CH / 4), 1, (3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1)),
         )
         
         self.name = MODEL_NAME
@@ -111,13 +101,10 @@ class NeuralNet(RootNet):
 
 
     def forward(self, x):
-        encoded = self.encoder(torch.unsqueeze(x, 1))
-        decoded = self.decoder(encoded)
-        decoded = -self.relu(decoded)  # so max final output after torch.exp is always between 0 and 1. This conditioning helps regularization.
-
-        out = (1/self.system_parameters.number_of_antennas) * torch.exp(decoded)
-        out = torch.squeeze(out, dim=1)
-        return out
+        output = -self.FCN(x.view(-1, 1, self.input_size))
+        output = (1/self.system_parameters.number_of_antennas) * torch.exp(output)
+        output = output.view(self.output_shape)
+        return output
 
     def train_dataloader(self):
         train_dataset = BetaDataset(data_path=self.data_path, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples, device=self.device)
