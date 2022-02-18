@@ -61,6 +61,11 @@ from utils.utils import handle_deletion_and_creation
 operating_mode = list(OperatingModes)[operating_mode-1]  # Translating integers to the element of OperatingModes
 retain = (retain==1)  # Translating {0, 1} to {False, True}
 
+all_mode_flag = False
+if operating_mode == OperatingModes.ALL:
+    all_mode_flag = True
+    operating_mode = OperatingModes.TRAINING
+
 if not operating_mode == OperatingModes.TRAINING:
     number_of_samples = testing_number_of_samples  # Overwrites input argument 'number_of_samples' if not 'TRAINING' phase.
 
@@ -82,11 +87,6 @@ if __name__ == '__main__':
     # Time stamp recording
     start = time.perf_counter()
     
-    all_mode_flag = False
-    if operating_mode == OperatingModes.ALL:
-        all_mode_flag = True
-        operating_mode = OperatingModes.TRAINING
-
     simulation_parameters = SimulationParameters(root, number_of_samples, operating_mode, scenario, retain, triton_results_base)
     
     if simulation_parameters.scenario==1:
@@ -114,7 +114,7 @@ if __name__ == '__main__':
         print(f'Finished data_gen in {round(time_now - time_then, 2)} second(s)')
     
     
-    if simulation_parameters.operation_mode==OperatingModes.TRAINING or simulation_parameters.operation_mode==OperatingModes.ALL:
+    if simulation_parameters.operation_mode==OperatingModes.TRAINING:
         time_then = time.perf_counter()
         
         train(simulation_parameters, system_parameters)
