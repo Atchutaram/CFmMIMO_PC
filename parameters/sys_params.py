@@ -27,7 +27,7 @@ def compute_laplace_mat(ap_positions_list, device):
 
 
 class SystemParameters:
-    def __init__(self, simulation_parameters, param_D, number_of_users, access_point_density):
+    def __init__(self, simulation_parameters, param_D, number_of_users, access_point_density, models_list):
         self.param_L = torch.tensor(140.715087, device=simulation_parameters.device, requires_grad=False, dtype=torch.float32)
         self.d_0 = torch.tensor(0.01, device=simulation_parameters.device, requires_grad=False, dtype=torch.float32)
         self.d_1 = torch.tensor(0.05, device=simulation_parameters.device, requires_grad=False, dtype=torch.float32)
@@ -55,6 +55,8 @@ class SystemParameters:
         self.param_D = torch.tensor(param_D, requires_grad=False, device=simulation_parameters.device, dtype=torch.float32)  # D
         self.number_of_users = number_of_users  # K
         self.access_point_density = access_point_density
+        self.models_list = models_list
+        simulation_parameters.handle_model_subfolders(self.models_list)
 
         self.number_of_access_points = int(access_point_density * self.param_D.item())  # M
         self.area_width = torch.sqrt(self.param_D)  # in Km

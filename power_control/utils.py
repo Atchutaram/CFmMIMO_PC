@@ -1,8 +1,5 @@
 import torch
-import torch.nn as nn
-import os
 
-from utils.utils import find_the_latest_file
 
 def compute_vmat(betas, zeta_p, T_p, phi_cross_mat, device):
     # computes Eq (5)
@@ -13,33 +10,6 @@ def compute_vmat(betas, zeta_p, T_p, phi_cross_mat, device):
     v_mat = (zeta_p * T_p * (betas ** 2)) / den
 
     return v_mat
-
-def initialize_weights(m):
-    if isinstance(m, nn.Conv2d):
-        nn.init.kaiming_uniform_(m.weight.data, nonlinearity='relu')
-        if m.bias is not None:
-            nn.init.constant_(m.bias.data, 0)
-    elif isinstance(m, nn.Linear):
-        nn.init.kaiming_uniform_(m.weight.data)
-        nn.init.constant_(m.bias.data, 0)
-
-
-def load_the_latest_model_and_params_if_exists(model_folder, device, system_parameters, interm_folder, is_testing=False):
-    from .models.model import NeuralNet
-    from .gradient_handler import grads
-    
-    model = NeuralNet(device, system_parameters, interm_folder, grads)
-    model.apply(initialize_weights)
-    model_file = find_the_latest_file(model_folder)
-    
-    if model_file is not None:
-        model.load_state_dict(torch.load(os.path.join(model_folder, model_file)))
-    elif is_testing:
-        from sys import exit
-        print('Train the neural network before testing!')
-        exit()
-    print(model_file)
-    return model
 
 
 def individual_utility_computation(betas, mus, N, zeta_d, T_p, T_c, v_mat, phi_cross_mat, target_user):

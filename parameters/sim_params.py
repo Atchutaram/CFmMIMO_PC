@@ -1,7 +1,6 @@
 import os
 import torch
 from enum import IntEnum, auto
-import datetime
 import sys
 
 from utils.utils import handle_deletion_and_creation
@@ -12,6 +11,7 @@ class OperatingModes(IntEnum):
     TRAINING  = auto()  # generates training data and perform training in data Handler save trained NN model
     TESTING  = auto()  # Performs dataGen and dataHandler for all the algos for given scenarios. The DL algo uses the trained NN model
     PLOTTING_ONLY = auto()  # this is only after testing mode
+    ALL = auto()  # Performs training and then testing.
 
 
 
@@ -50,11 +50,7 @@ class SimulationParameters:
             else:
                 self.results_folder = os.path.join(results_base, "results")
                 self.plot_folder = os.path.join(results_base, "plots")
-            
         
-        date_str = str(datetime.datetime.now().date()).replace('.', '_').replace('.', '_')
-        time_str = str(datetime.datetime.now().time()).replace(':', '_').replace('.', '_')
-        self.model_file_name = f'model_{date_str}_{time_str}.pth'
 
         if not self.operation_mode == OperatingModes.PLOTTING_ONLY:
             if not os.path.exists(self.base_folder_path):
@@ -76,6 +72,7 @@ class SimulationParameters:
         
         if not os.path.exists(self.model_folder_path):
             if self.operation_mode == OperatingModes.TESTING:
+                print(self.model_folder_path)
                 print('Train the neural network before testing!')
                 sys.exit()
             os.makedirs(self.model_folder_path)
@@ -83,3 +80,24 @@ class SimulationParameters:
         if not os.path.exists(self.interm_folder):
             if self.operation_mode == OperatingModes.TRAINING:
                 os.makedirs(self.interm_folder)
+    
+    def handle_model_subfolders(self, models_list):
+        self.model_subfolder_path_dict = {}
+        self.interm_subfolder_path_dict = {}
+        for model_name in models_list:
+            
+            subfolder_path = os.path.join(self.model_folder_path, model_name)
+            self.model_subfolder_path_dict[model_name] = subfolder_path
+            if not os.path.exists(subfolder_path):
+                if self.operation_mode == OperatingModes.TESTING:
+                    print(subfolder_path)
+                    print('Train the neural network before testing!')
+                    sys.exit()
+                os.makedirs(subfolder_path)
+            
+            
+            subfolder_path = os.path.join(self.interm_folder, model_name)
+            self.interm_subfolder_path_dict[model_name] = subfolder_path
+            if not os.path.exists(subfolder_path):
+                if self.operation_mode == OperatingModes.TRAINING:
+                    os.makedirs(subfolder_path)
