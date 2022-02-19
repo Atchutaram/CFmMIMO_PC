@@ -67,7 +67,7 @@ class RootNet(nn.Module):
         self.backward(mus, gradient=[mus_grads, grad_wrt_slack])
         self.opt.step()
 
-        if epoch_id % 10 == 0 and epoch_id > 0:
+        if (epoch_id+1) % 10 == 0:
             interm_model_full_path = os.path.join(self.interm_folder, f'model_{epoch_id}.pth')
             torch.save(self.state_dict(), interm_model_full_path)
         

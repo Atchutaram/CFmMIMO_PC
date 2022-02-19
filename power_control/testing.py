@@ -70,6 +70,7 @@ def ref_algo_two(betas, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device):
     delta = 1e-5
 
     const =  1 / math.sqrt(N)
+    count_init = 100
 
     for _ in range(30):
 
@@ -85,7 +86,7 @@ def ref_algo_two(betas, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device):
         alpha_mu = torch.abs(alpha_mu)
         y = mus_vec_new + (t_old / t_new) * (z - mus_vec_new) + ((t_old - 1) / t_new) * (mus_vec_new - mus_vec_old)
 
-        count = 200
+        count = count_init
         while 1:
             z = project_to_s(y + alpha_y * grad_f(betas, y, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)[0], const)
             alpha_y = rho * alpha_y
@@ -95,14 +96,20 @@ def ref_algo_two(betas, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device):
             
             count += -1
             if count<0:
+                z = y
+                u_z = u_y
+                break
+
+            if math.isnan(u_z + u_y + alpha_y) or math.isinf(u_z + u_y + alpha_y):
                 import sys
-                print('algo_two took too long')
+                print('algo_two error in loop1')
+                print(count, u_z, u_y, alpha_y)
                 sys.exit()
 
             if u_z >= (u_y + delta_diff):
                 break
 
-        count = 200
+        count = count_init
         while 1:
             v = project_to_s(mus_vec_new + alpha_mu * grad_f(betas, mus_vec_new, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)[0], const)
             alpha_mu = rho * alpha_mu
@@ -112,8 +119,14 @@ def ref_algo_two(betas, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device):
             
             count += -1
             if count<0:
+                v = mus_vec_new
+                u_v= u_mu
+                break
+                
+            if math.isnan(u_v + u_mu + alpha_mu) or math.isinf(u_v + u_mu + alpha_mu):
                 import sys
-                print('algo_two took too long')
+                print('algo_two error in loop2')
+                print(count, u_v, u_mu, alpha_mu)
                 sys.exit()
 
             if u_v >= (u_mu + delta_diff):
