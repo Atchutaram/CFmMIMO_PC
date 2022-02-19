@@ -8,7 +8,7 @@ from sklearn.preprocessing import StandardScaler
 from .root_model import Mode, RootDataset, CommonParameters, RootNet
 
 
-MODEL_NAME = 'FCN'
+MODEL_NAME = 'GFT'
 
 class BetaDataset(RootDataset):
     def __init__(self, data_path, normalizer, mode, n_samples, device):
@@ -39,18 +39,20 @@ class HyperParameters(CommonParameters):
 
     @classmethod
     def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
-        
         M = system_parameters.number_of_access_points
         K = system_parameters.number_of_users
-        cls.input_size = K * M
+        cls.sqrt_laplace_matrix = system_parameters.sqrt_laplace_matrix
+        M_short = cls.sqrt_laplace_matrix.shape[0]
+
+        cls.input_size = K * M_short
         cls.output_size = K * M
+        cls.hidden_size = cls.output_size
         cls.output_shape = (-1, M, K)
 
         
         cls.n_samples = simulation_parameters.number_of_samples
         cls.training_data_path = simulation_parameters.data_folder
         cls.scenario = simulation_parameters.scenario
-
         
         if is_test_mode:
             cls.batch_size = 1
@@ -60,7 +62,6 @@ class HyperParameters(CommonParameters):
             cls.batch_size = 8 * 2
         else:
             cls.batch_size = 1
-        
         
 
         train_dataset = BetaDataset(data_path=cls.training_data_path, normalizer=cls.sc, mode=Mode.pre_processing, n_samples=cls.n_samples, device=torch.device('cpu'))
@@ -72,6 +73,7 @@ class HyperParameters(CommonParameters):
 
         pickle.dump(cls.sc, open(cls.sc_path, 'wb'))  # saving sc for loading later in testing phase
         print(f'{cls.sc_path} dumped!')
+    
     
 
 class NeuralNet(RootNet):
@@ -87,7 +89,7 @@ class NeuralNet(RootNet):
         self.learning_rate = HyperParameters.learning_rate
         
         self.input_size = HyperParameters.input_size
-        self.hidden_size = HyperParameters.input_size
+        self.hidden_size = HyperParameters.hidden_size
         self.output_size = HyperParameters.output_size
         self.output_shape = HyperParameters.output_shape
         
@@ -97,12 +99,14 @@ class NeuralNet(RootNet):
             nn.Linear(self.hidden_size, self.output_size),
             nn.ReLU(),
         )
+        self.sqrt_laplace_matrix = system_parameters.sqrt_laplace_matrix
         
         self.name = MODEL_NAME
         self.to(self.device)
 
 
     def forward(self, x):
+        x = self.sqrt_laplace_matrix @ x
         output = -self.FCN(x.view(-1, 1, self.input_size))
         output = (1/self.system_parameters.number_of_antennas) * torch.exp(output)
         output = output.view(self.output_shape)

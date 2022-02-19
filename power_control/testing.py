@@ -4,7 +4,7 @@ import time
 
 from .utils import compute_vmat, utility_computation
 from .gradient_handler import grads, grad_f
-from .models.utils import load_the_latest_model_and_params_if_exists, deploy, model_test_setup
+from .models.utils import load_the_latest_model_and_params_if_exists, deploy, initialize_hyper_params
 from utils.visualization import performance_plotter
 
 
@@ -70,7 +70,7 @@ def ref_algo_two(betas, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device):
     delta = 1e-5
 
     const =  1 / math.sqrt(N)
-    count_init = 100
+    epsilon = 1e-10
 
     for _ in range(30):
 
@@ -86,7 +86,6 @@ def ref_algo_two(betas, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device):
         alpha_mu = torch.abs(alpha_mu)
         y = mus_vec_new + (t_old / t_new) * (z - mus_vec_new) + ((t_old - 1) / t_new) * (mus_vec_new - mus_vec_old)
 
-        count = count_init
         while 1:
             z = project_to_s(y + alpha_y * grad_f(betas, y, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)[0], const)
             alpha_y = rho * alpha_y
@@ -94,22 +93,18 @@ def ref_algo_two(betas, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device):
             u_y, _ = utility_computation(betas, y, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)
             delta_diff = delta * torch.dot((z - y).flatten(), (z - y).flatten())
             
-            count += -1
-            if count<0:
-                z = y
-                u_z = u_y
+            if alpha_y < epsilon:
                 break
 
             if math.isnan(u_z + u_y + alpha_y) or math.isinf(u_z + u_y + alpha_y):
                 import sys
                 print('algo_two error in loop1')
-                print(count, u_z, u_y, alpha_y)
+                print(u_z, u_y, alpha_y)
                 sys.exit()
 
             if u_z >= (u_y + delta_diff):
                 break
 
-        count = count_init
         while 1:
             v = project_to_s(mus_vec_new + alpha_mu * grad_f(betas, mus_vec_new, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)[0], const)
             alpha_mu = rho * alpha_mu
@@ -117,16 +112,13 @@ def ref_algo_two(betas, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device):
             u_mu, _ = utility_computation(betas, mus_vec_new, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)
             delta_diff = delta * torch.dot((v - mus_vec_new).flatten(), (v - mus_vec_new).flatten())
             
-            count += -1
-            if count<0:
-                v = mus_vec_new
-                u_v= u_mu
+            if alpha_mu < epsilon:
                 break
                 
             if math.isnan(u_v + u_mu + alpha_mu) or math.isinf(u_v + u_mu + alpha_mu):
                 import sys
                 print('algo_two error in loop2')
-                print(count, u_v, u_mu, alpha_mu)
+                print(u_v, u_mu, alpha_mu)
                 sys.exit()
 
             if u_v >= (u_mu + delta_diff):
@@ -192,9 +184,10 @@ def run_power_control_algos(simulation_parameters, system_parameters, algo_list,
         _, SE[algo_name] = utility_computation(betas, mus, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)
 
 
-    if 'CNN' in algo_list:
-        algo_name = 'CNN'
-        model_name = 'CNN'
+    model_name = 'FCN'
+    if model_name in algo_list:
+        algo_name = model_name
+        
 
         time_then = time.perf_counter()
         mus = deploy(models[model_name], betas, model_name, device)
@@ -203,10 +196,35 @@ def run_power_control_algos(simulation_parameters, system_parameters, algo_list,
 
         _, SE[algo_name] = utility_computation(betas, mus, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)
 
+    
+    model_name = 'CNN'
+    if model_name in algo_list:
+        algo_name = model_name
+        
 
-    if 'FCN' in algo_list:
-        algo_name = 'FCN'
-        model_name = 'FCN'
+        time_then = time.perf_counter()
+        mus = deploy(models[model_name], betas, model_name, device)
+        time_now = time.perf_counter()
+        latency[algo_name] = round(time_now - time_then, 6)
+
+        _, SE[algo_name] = utility_computation(betas, mus, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)
+
+    model_name = 'GFT'
+    if model_name in algo_list:
+        algo_name = model_name
+        
+
+        time_then = time.perf_counter()
+        mus = deploy(models[model_name], betas, model_name, device)
+        time_now = time.perf_counter()
+        latency[algo_name] = round(time_now - time_then, 6)
+
+        _, SE[algo_name] = utility_computation(betas, mus, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)
+    
+    model_name = 'TDN'
+    if model_name in algo_list:
+        algo_name = model_name
+        
 
         time_then = time.perf_counter()
         mus = deploy(models[model_name], betas, model_name, device)
@@ -235,7 +253,7 @@ def setup_and_load_deep_learning_models(models_to_run, simulation_parameters, sy
     
     models = {}
     for model_name in models_to_run:
-        model_test_setup(number_of_access_points, number_of_users, scenario, model_name)
+        initialize_hyper_params(model_name, simulation_parameters, system_parameters, is_test_mode=True)
         models[model_name] = load_the_latest_model_and_params_if_exists(model_name, model_folder_dict[model_name], interm_folder_dict[model_name], system_parameters, grads, device, is_testing=True)
     
     return models

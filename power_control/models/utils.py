@@ -30,23 +30,17 @@ def deploy(model, test_sample, model_name, device):
         test_sample = torch.log(test_sample)
 
         t_shape = test_sample.shape
-        test_sample = test_sample.view((-1, module.HyperParameters.input_size)).to(device='cpu')
+        test_sample = test_sample.view((1,-1)).to(device='cpu')
         beta_torch = sc.transform(test_sample)[0]
         beta_torch = torch.tensor(beta_torch, device=device, requires_grad=False, dtype=torch.float32).view(t_shape)
         mus_predicted = model(beta_torch)
         return mus_predicted
 
-def model_test_setup(number_of_access_points, number_of_users, scenario, model_name):
+def initialize_hyper_params(model_name, simulation_parameters, system_parameters, is_test_mode=False):
     import_path = find_import_path(model_name)
     module = importlib.import_module(import_path, ".")  # imports the scenarios
     
-    module.HyperParameters.test_setup(number_of_access_points, number_of_users, scenario)
-
-def data_preprocessing(model_name, M, K, n_samples, training_data_path, scenario):
-    import_path = find_import_path(model_name)
-    module = importlib.import_module(import_path, ".")  # imports the scenarios
-    
-    module.HyperParameters.data_preprocessing(M, K, n_samples, training_data_path, scenario)
+    module.HyperParameters.intialize(simulation_parameters, system_parameters, is_test_mode=is_test_mode)
 
 def load_the_latest_model_and_params_if_exists(model_name, model_folder, interm_folder, system_parameters, grads, device, is_testing=False):  
     import_path = find_import_path(model_name)

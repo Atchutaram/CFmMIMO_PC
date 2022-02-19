@@ -8,7 +8,7 @@ from sklearn.preprocessing import StandardScaler
 from .root_model import Mode, RootDataset, CommonParameters, RootNet
 
 
-MODEL_NAME = 'FCN'
+MODEL_NAME = 'TDN'
 
 class BetaDataset(RootDataset):
     def __init__(self, data_path, normalizer, mode, n_samples, device):
@@ -39,28 +39,24 @@ class HyperParameters(CommonParameters):
 
     @classmethod
     def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
-        
-        M = system_parameters.number_of_access_points
-        K = system_parameters.number_of_users
-        cls.input_size = K * M
-        cls.output_size = K * M
-        cls.output_shape = (-1, M, K)
+        cls.M = system_parameters.number_of_access_points
+        cls.K = system_parameters.number_of_users
 
         
         cls.n_samples = simulation_parameters.number_of_samples
         cls.training_data_path = simulation_parameters.data_folder
         cls.scenario = simulation_parameters.scenario
-
+        
+        if cls.scenario == 1:
+            cls.batch_size = 8 * 2
+            cls.OUT_CH = 600
+        else:
+            cls.batch_size = 1
+            cls.OUT_CH = 4
         
         if is_test_mode:
             cls.batch_size = 1
             return
-
-        if cls.scenario == 1:
-            cls.batch_size = 8 * 2
-        else:
-            cls.batch_size = 1
-        
         
 
         train_dataset = BetaDataset(data_path=cls.training_data_path, normalizer=cls.sc, mode=Mode.pre_processing, n_samples=cls.n_samples, device=torch.device('cpu'))
@@ -72,6 +68,7 @@ class HyperParameters(CommonParameters):
 
         pickle.dump(cls.sc, open(cls.sc_path, 'wb'))  # saving sc for loading later in testing phase
         print(f'{cls.sc_path} dumped!')
+    
     
 
 class NeuralNet(RootNet):
@@ -85,28 +82,37 @@ class NeuralNet(RootNet):
         self.normalizer = HyperParameters.sc
         self.batch_size = HyperParameters.batch_size
         self.learning_rate = HyperParameters.learning_rate
+
+        K = HyperParameters.K
+        M = HyperParameters.M
+        OUT_CH = HyperParameters.OUT_CH
+        self.OUT_CH = OUT_CH
         
-        self.input_size = HyperParameters.input_size
-        self.hidden_size = HyperParameters.input_size
-        self.output_size = HyperParameters.output_size
-        self.output_shape = HyperParameters.output_shape
-        
-        self.FCN = nn.Sequential(
-            nn.Linear(self.input_size, self.hidden_size),
-            nn.ReLU(),
-            nn.Linear(self.hidden_size, self.output_size),
-            nn.ReLU(),
-        )
-        
+        self.FCNs = nn.ModuleList()
+        for _ in range(M):
+            self.FCNs.append(
+                nn.Sequential(
+                    nn.Linear(K, K),
+                    nn.ReLU(),
+                    nn.Linear(K, K),
+                    )
+            )
+
         self.name = MODEL_NAME
         self.to(self.device)
 
 
     def forward(self, x):
-        output = -self.FCN(x.view(-1, 1, self.input_size))
-        output = (1/self.system_parameters.number_of_antennas) * torch.exp(output)
-        output = output.view(self.output_shape)
-        return output
+        x = torch.unsqueeze(x, 1)
+        decoded = []
+        for m, FCN in enumerate(self.FCNs):
+            decoded_temp = FCN(x[:, 0, m, :])
+            decoded_temp = -self.relu(decoded_temp)  # so max final output after torch.exp is always between 0 and 1. This conditioning helps regularization.
+            decoded_temp = (1/self.system_parameters.number_of_antennas) * torch.exp(decoded_temp)
+            decoded.append(torch.unsqueeze(decoded_temp, 0))
+        
+        decoded = torch.transpose(torch.cat(decoded), 0, 1).to(device=self.device)
+        return decoded
 
     def train_dataloader(self):
         train_dataset = BetaDataset(data_path=self.data_path, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples, device=self.device)

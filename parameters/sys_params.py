@@ -1,17 +1,10 @@
 import torch
 import warnings
 
-
-def compute_laplace_mat(ap_positions_list, device):
-    M = ap_positions_list.shape[0]
-    adjacency_matrix = torch.zeros((M, M), requires_grad=False, dtype=torch.float32, device=device)
-    for ap_id1, ap_ref in enumerate(ap_positions_list):
-        for ap_id2, ap_target in enumerate(ap_positions_list):
-            if ap_id2 <= ap_id1:
-                continue
-            adjacency_matrix[ap_id1, ap_id2] = torch.linalg.norm(ap_target - ap_ref)
-    adjacency_matrix = adjacency_matrix + adjacency_matrix.T
-
+def compute_laplace_mat(ap_positions_list, ap_minus_ref, device):
+    from generate_beta import get_d_mat
+    adjacency_matrix = get_d_mat(ap_positions_list, ap_minus_ref)
+    
     adjacency_matrix_final = adjacency_matrix * 0
     number_of_adjacent_branches = 4
     with warnings.catch_warnings():
@@ -20,10 +13,33 @@ def compute_laplace_mat(ap_positions_list, device):
             second_lowest = torch.sort(row).values[number_of_adjacent_branches - 1]
             adjacency_matrix_final[row_id, :] = (1 / row) * (row <= second_lowest)
             adjacency_matrix_final[row_id, row_id] = 0
-    degree_matrix = torch.diag(adjacency_matrix.sum(dim=0))
+    adjacency_matrix_final = (adjacency_matrix_final + adjacency_matrix_final.T)/2  # This is to maintain symmetry lost in colde referec as (A)
+    degree_matrix = torch.diag(adjacency_matrix_final.sum(dim=0))
     laplace_matrix = degree_matrix - adjacency_matrix_final
+    
+    w, v = torch.linalg.eig(laplace_matrix)
+    w = w.real
+    w = w*(w>0)
+    idx = torch.flip(w.argsort(), (0,))
+    w = w[idx]
+    v = v[:,idx]
 
-    return laplace_matrix
+    T = w.sum()
+    w_size = torch.numel(w)
+    number_of_eigs = w_size
+    for id in range(w_size):
+        t = w[:id].sum()
+        if t >= 0.9*T:
+            number_of_eigs = id
+            # print('number_of_eigs: ', number_of_eigs)
+            break
+    w_hat = torch.sqrt(w[:number_of_eigs])
+    w_hat = torch.complex(w_hat, 0*w_hat)
+    v_conj = v.conj().T[:number_of_eigs, :]
+
+    sqrt_laplace_matrix = torch.diag(w_hat) @ v_conj
+    sqrt_laplace_matrix = sqrt_laplace_matrix.real
+    return sqrt_laplace_matrix.to(device)
 
 
 class SystemParameters:
@@ -76,12 +92,11 @@ class SystemParameters:
         rand_vec = torch.rand((2, self.number_of_access_points), device=simulation_parameters.device, requires_grad=False, dtype=torch.float32)-0.5  # 2 X M
         
         AP_positions = torch.einsum('d,dm->md ', area_dims, rand_vec).to(simulation_parameters.device)
-        self.laplace_matrix = compute_laplace_mat(AP_positions, simulation_parameters.device) # currently unused but do not delete
-
+        
         D1 = self.area_width
         D2 = self.area_height
         ref_list = [[0, 0], [-D1, 0], [0, -D2], [D1, 0], [0, D2], [-D1, D2], [D1, -D2], [-D1, -D2], [D1, D2]]
         ref = torch.tensor(ref_list, device=simulation_parameters.device, requires_grad=False, dtype=torch.float32)
         
         self.ap_minus_ref = AP_positions.view(-1, 1, 2)-ref
-        
+        self.sqrt_laplace_matrix = compute_laplace_mat(AP_positions, self.ap_minus_ref, simulation_parameters.device)

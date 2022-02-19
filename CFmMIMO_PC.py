@@ -43,8 +43,29 @@ if clean:
     file = 'sc.pkl'
     if os.path.isfile(file):
         os.remove(file)
+        print(f'{file} removed')
     
-    print(f"Cleaned '{training}', '{testing}', '{lightning}', '{model_1}', '{model_2}', '{interm}', and '{file}'! ")
+    file = 'FCN_sc.pkl'
+    if os.path.isfile(file):
+        os.remove(file)
+        print(f'{file} removed')
+
+    file = 'CNN_sc.pkl'
+    if os.path.isfile(file):
+        os.remove(file)
+        print(f'{file} removed')
+    
+    file = 'GFT_sc.pkl'
+    if os.path.isfile(file):
+        os.remove(file)
+        print(f'{file} removed')
+
+    file = 'TDN_sc.pkl'
+    if os.path.isfile(file):
+        os.remove(file)
+        print(f'{file} removed')
+    
+    print(f"Cleaned '{training}', '{testing}', '{lightning}', '{model_1}', '{model_2}', '{interm}'! ")
     exit()
 
 from parameters.sim_params import SimulationParameters
@@ -93,8 +114,7 @@ if __name__ == '__main__':
         inp_param_D = 1
         inp_number_of_users = 20
         inp_access_point_density = 100
-        models_list = ['FCN', 'CNN', 'PCA', 'GFT', 'TP']
-        models_list = ['FCN', 'CNN']
+        models_list = ['FCN', 'CNN', 'GFT', 'TDN']
     elif simulation_parameters.scenario==2:
         inp_param_D = 1
         inp_number_of_users = 500
