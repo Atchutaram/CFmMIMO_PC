@@ -37,7 +37,7 @@ class HyperParameters(CommonParameters):
         else:
             cls.batch_size = 1
         
-        train_dataset = BetaDataset(data_path=cls.training_data_path, normalizer=cls.sc, mode=Mode.pre_processing, n_samples=cls.n_samples, device=torch.device('cpu'))
+        train_dataset = cls.InpDataSet(data_path=cls.training_data_path, normalizer=cls.sc, mode=Mode.pre_processing, n_samples=cls.n_samples, device=torch.device('cpu'))
         train_loader = DataLoader(dataset=train_dataset, batch_size=1, shuffle=False)
         
         for beta in train_loader:

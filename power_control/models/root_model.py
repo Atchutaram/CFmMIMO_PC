@@ -6,6 +6,7 @@ from tqdm import tqdm
 from enum import Enum, auto
 from torch.utils.data import Dataset
 from torch.optim.lr_scheduler import StepLR
+from torch.utils.data import DataLoader
 import math
 
 
@@ -53,6 +54,7 @@ class CommonParameters:
     step_size = 30
     eta = 1e-5
     VARYING_STEP_SIZE = False
+    InpDataSet = RootDataset
 
 class RootNet(nn.Module):
     def __init__(self, device, system_parameters, interm_folder, grads):

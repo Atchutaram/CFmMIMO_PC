@@ -36,6 +36,7 @@ class HyperParameters(CommonParameters):
     sc = StandardScaler()
     sc_path = os.path.join(os.getcwd(), f'{MODEL_NAME}_sc.pkl')
     training_data_path = ''
+    InpDataSet = BetaDataset
     
     @classmethod
     def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
@@ -63,7 +64,7 @@ class HyperParameters(CommonParameters):
             cls.batch_size = 1
         
 
-        train_dataset = BetaDataset(data_path=cls.training_data_path, normalizer=cls.sc, mode=Mode.pre_processing, n_samples=cls.n_samples, device=torch.device('cpu'), sqrt_laplace_matrix = cls.sqrt_laplace_matrix)
+        train_dataset = cls.InpDataSet(data_path=cls.training_data_path, normalizer=cls.sc, mode=Mode.pre_processing, n_samples=cls.n_samples, device=torch.device('cpu'), sqrt_laplace_matrix = cls.sqrt_laplace_matrix)
         train_loader = DataLoader(dataset=train_dataset, batch_size=1, shuffle=False)
         
         for beta in train_loader:

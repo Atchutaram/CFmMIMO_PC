@@ -5,11 +5,10 @@ import os
 import pickle
 from sklearn.preprocessing import StandardScaler
 
-from .root_model import Mode, RootDataset, CommonParameters, RootNet
+from .root_model import Mode, CommonParameters, RootNet
 
 
 MODEL_NAME = 'FCN'
-
 
 # Hyper-parameters
 class HyperParameters(CommonParameters):
@@ -44,7 +43,7 @@ class HyperParameters(CommonParameters):
         
         
 
-        train_dataset = BetaDataset(data_path=cls.training_data_path, normalizer=cls.sc, mode=Mode.pre_processing, n_samples=cls.n_samples, device=torch.device('cpu'))
+        train_dataset = cls.InpDataSet(data_path=cls.training_data_path, normalizer=cls.sc, mode=Mode.pre_processing, n_samples=cls.n_samples, device=torch.device('cpu'))
         train_loader = DataLoader(dataset=train_dataset, batch_size=1, shuffle=False)
         
         for beta in train_loader:
