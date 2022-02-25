@@ -7,6 +7,7 @@ import sys
 
 
 def get_user_config(area_width, area_height, number_of_users, device):
+    torch.seed()
     area_dims = torch.tensor([area_width, area_height], device=device, requires_grad=False, dtype=torch.float32)
     rand_vec = (torch.rand((2,number_of_users), device=device, requires_grad=False, dtype=torch.float32) - 0.5)
     user_config = torch.einsum('d,dm->md ', area_dims, rand_vec).to(device)

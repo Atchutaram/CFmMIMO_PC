@@ -41,24 +41,22 @@ class HyperParameters(CommonParameters):
     def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
         cls.M = system_parameters.number_of_access_points
         cls.K = system_parameters.number_of_users
+        cls.hid = 50*cls.K
 
         
         cls.n_samples = simulation_parameters.number_of_samples
         cls.training_data_path = simulation_parameters.data_folder
         cls.scenario = simulation_parameters.scenario
         
-        if cls.scenario == 1:
-            cls.batch_size = 8 * 2
-            cls.OUT_CH = 600
-        else:
-            cls.batch_size = 1
-            cls.OUT_CH = 4
-        
         if is_test_mode:
             cls.batch_size = 1
             return
         
-
+        if cls.scenario == 1:
+            cls.batch_size = 8 * 2
+        else:
+            cls.batch_size = 1
+        
         train_dataset = BetaDataset(data_path=cls.training_data_path, normalizer=cls.sc, mode=Mode.pre_processing, n_samples=cls.n_samples, device=torch.device('cpu'))
         train_loader = DataLoader(dataset=train_dataset, batch_size=1, shuffle=False)
         
@@ -82,19 +80,22 @@ class NeuralNet(RootNet):
         self.normalizer = HyperParameters.sc
         self.batch_size = HyperParameters.batch_size
         self.learning_rate = HyperParameters.learning_rate
-
+        self.VARYING_STEP_SIZE = HyperParameters.VARYING_STEP_SIZE
+        self.gamma = HyperParameters.gamma
+        self.step_size = HyperParameters.step_size
         K = HyperParameters.K
         M = HyperParameters.M
-        OUT_CH = HyperParameters.OUT_CH
-        self.OUT_CH = OUT_CH
+        hid = HyperParameters.hid
         
         self.FCNs = nn.ModuleList()
         for _ in range(M):
             self.FCNs.append(
                 nn.Sequential(
-                    nn.Linear(K, K),
+                    nn.Linear(K, hid),
                     nn.ReLU(),
-                    nn.Linear(K, K),
+                    nn.Linear(hid, hid),
+                    nn.ReLU(),
+                    nn.Linear(hid, K),
                     )
             )
 

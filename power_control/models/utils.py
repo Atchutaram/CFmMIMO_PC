@@ -27,7 +27,10 @@ def deploy(model, test_sample, model_name, device):
     sc = pickle.load(open(module.HyperParameters.sc_path, 'rb'))
 
     with torch.no_grad():
-        test_sample = torch.log(test_sample)
+        if not model_name == 'GFT':
+            test_sample = torch.log(test_sample)
+        else:
+            test_sample = model.sqrt_laplace_matrix @ test_sample
 
         t_shape = test_sample.shape
         test_sample = test_sample.view((1,-1)).to(device='cpu')

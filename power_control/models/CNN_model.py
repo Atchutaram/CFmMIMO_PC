@@ -82,6 +82,9 @@ class NeuralNet(RootNet):
         self.normalizer = HyperParameters.sc
         self.batch_size = HyperParameters.batch_size
         self.learning_rate = HyperParameters.learning_rate
+        self.VARYING_STEP_SIZE = HyperParameters.VARYING_STEP_SIZE
+        self.gamma = HyperParameters.gamma
+        self.step_size = HyperParameters.step_size
 
         K = HyperParameters.K
         M = HyperParameters.M
@@ -104,7 +107,7 @@ class NeuralNet(RootNet):
             nn.ReLU(),
             nn.ConvTranspose2d(round(OUT_CH / 4), 1, (3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1)),
         )
-        self.linear1 = nn.Linear(OUT_CH, OUT_CH)
+        # self.linear1 = nn.Linear(OUT_CH, OUT_CH)
         
         self.name = MODEL_NAME
         self.to(self.device)
@@ -113,7 +116,7 @@ class NeuralNet(RootNet):
     def forward(self, x):
         encoded = self.encoder(torch.unsqueeze(x, 1))
         encoded_shape = encoded.shape
-        encoded = self.relu(self.linear1(encoded.view(-1, 1, self.OUT_CH)))
+        # encoded = self.relu(self.linear1(encoded.view(-1, 1, self.OUT_CH)))
         decoded = self.decoder(encoded.view(encoded_shape))
         decoded = -self.relu(decoded)  # so max final output after torch.exp is always between 0 and 1. This conditioning helps regularization.
 

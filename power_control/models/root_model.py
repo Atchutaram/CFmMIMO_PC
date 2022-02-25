@@ -5,6 +5,8 @@ import datetime
 from tqdm import tqdm
 from enum import Enum, auto
 from torch.utils.data import Dataset
+from torch.optim.lr_scheduler import StepLR
+import math
 
 
 class Mode(Enum):
@@ -31,16 +33,17 @@ class CommonParameters:
     num_epochs = 200
     learning_rate = 1e-4
 
-    gamma = 0.32
-    step_size = 5
+    gamma = 0.1
+    step_size = 30
     eta = 1e-5
+    VARYING_STEP_SIZE = False
 
 class RootNet(nn.Module):
     def __init__(self, device, system_parameters, interm_folder, grads):
         super(RootNet, self).__init__()
         
         self.relu = nn.ReLU()
-
+        torch.seed()
         self.slack_variable_in = torch.rand((1,), requires_grad=True, dtype=torch.float32, device = device)
         self.slack_variable = torch.zeros((1,), requires_grad=True, dtype=torch.float32, device = device)
         self.device = device
@@ -50,7 +53,7 @@ class RootNet(nn.Module):
         self.interm_folder = interm_folder
         self.grads = grads
         
-    
+        
     def set_folder(self, model_folder):
         self.model_folder = model_folder
     
@@ -82,19 +85,30 @@ class RootNet(nn.Module):
             self.slack_variable.backward(grad_wrt_slack, retain_graph=True)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-    
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate) 
+        if self.VARYING_STEP_SIZE:
+            return optimizer, StepLR(optimizer, step_size=self.step_size, gamma=self.gamma)
+        else:
+            return optimizer
+
     def train(self):
         train_loader = self.train_dataloader()
         
-        self.opt = self.configure_optimizers()
+        
+        if self.VARYING_STEP_SIZE:
+            self.opt, self.scheduler = self.configure_optimizers()
+        else:
+            self.opt = self.configure_optimizers()
         
         for epoch_id in tqdm(range(self.num_epochs)):
             for bacth in train_loader:
                 utility = self.training_step(bacth, epoch_id)
+            
+            if self.VARYING_STEP_SIZE:
+                self.scheduler.step()
                 
             if epoch_id % 10 == 0:
-                tqdm.write(f'\nUtility: {-utility.mean().item()}')
+                tqdm.write(f'\nUtility: {-utility.min().item()}')
         
         date_str = str(datetime.datetime.now().date()).replace(':', '_').replace('.', '_').replace('-', '_')
         time_str = str(datetime.datetime.now().time()).replace(':', '_').replace('.', '_').replace('-', '_')

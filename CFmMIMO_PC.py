@@ -115,6 +115,8 @@ if __name__ == '__main__':
         inp_number_of_users = 20
         inp_access_point_density = 100
         models_list = ['FCN', 'CNN', 'GFT', 'TDN']
+        models_list = ['TDN', 'GFT', 'CNN', 'FCN']
+        models_list = ['FCN']
     elif simulation_parameters.scenario==2:
         inp_param_D = 1
         inp_number_of_users = 500

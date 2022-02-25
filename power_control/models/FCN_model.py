@@ -42,8 +42,9 @@ class HyperParameters(CommonParameters):
         
         M = system_parameters.number_of_access_points
         K = system_parameters.number_of_users
-        cls.input_size = K * M
-        cls.output_size = K * M
+        cls.input_size = M * K
+        cls.output_size = M * K
+        cls.hidden_size = M * K
         cls.output_shape = (-1, M, K)
 
         
@@ -85,9 +86,11 @@ class NeuralNet(RootNet):
         self.normalizer = HyperParameters.sc
         self.batch_size = HyperParameters.batch_size
         self.learning_rate = HyperParameters.learning_rate
-        
+        self.VARYING_STEP_SIZE = HyperParameters.VARYING_STEP_SIZE
+        self.gamma = HyperParameters.gamma
+        self.step_size = HyperParameters.step_size
         self.input_size = HyperParameters.input_size
-        self.hidden_size = HyperParameters.input_size
+        self.hidden_size = HyperParameters.hidden_size
         self.output_size = HyperParameters.output_size
         self.output_shape = HyperParameters.output_shape
         

@@ -11,23 +11,23 @@ from .root_model import Mode, RootDataset, CommonParameters, RootNet
 MODEL_NAME = 'GFT'
 
 class BetaDataset(RootDataset):
-    def __init__(self, data_path, normalizer, mode, n_samples, device):
+    def __init__(self, data_path, normalizer, mode, n_samples, sqrt_laplace_matrix, device):
         super(BetaDataset, self).__init__(data_path, normalizer, mode, n_samples, device)
+        self.sqrt_laplace_matrix = sqrt_laplace_matrix.to(torch.device('cpu'))
 
     def __getitem__(self, index):
         beta_file_name = f'betas_sample{index}.pt'
         beta_file_path = os.path.join(self.path, beta_file_name)
         beta_original = torch.load(beta_file_path)['betas'].to(dtype=torch.float32)
+        beta_torch = self.sqrt_laplace_matrix @ beta_original
         if self.mode == Mode.pre_processing:
-            beta = torch.log(beta_original.reshape((-1,)))
-            return beta
+            beta_torch = beta_torch.reshape((-1,))
+            return beta_torch
         
-        beta_torch = torch.log(beta_original)
         beta_torch = beta_torch.reshape((1, -1,))
         beta_torch = self.sc.transform(beta_torch)[0]
         beta_torch = torch.from_numpy(beta_torch).to(dtype=torch.float32, device=self.device)
         beta_torch = beta_torch.reshape(beta_original.shape)
-
         return beta_torch, beta_original.to(device=self.device)
 
 
@@ -36,17 +36,16 @@ class HyperParameters(CommonParameters):
     sc = StandardScaler()
     sc_path = os.path.join(os.getcwd(), f'{MODEL_NAME}_sc.pkl')
     training_data_path = ''
-
+    
     @classmethod
     def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
         M = system_parameters.number_of_access_points
         K = system_parameters.number_of_users
         cls.sqrt_laplace_matrix = system_parameters.sqrt_laplace_matrix
-        M_short = cls.sqrt_laplace_matrix.shape[0]
 
-        cls.input_size = K * M_short
+        cls.input_size = K * M
         cls.output_size = K * M
-        cls.hidden_size = cls.output_size
+        cls.hidden_size = M * K
         cls.output_shape = (-1, M, K)
 
         
@@ -64,7 +63,7 @@ class HyperParameters(CommonParameters):
             cls.batch_size = 1
         
 
-        train_dataset = BetaDataset(data_path=cls.training_data_path, normalizer=cls.sc, mode=Mode.pre_processing, n_samples=cls.n_samples, device=torch.device('cpu'))
+        train_dataset = BetaDataset(data_path=cls.training_data_path, normalizer=cls.sc, mode=Mode.pre_processing, n_samples=cls.n_samples, device=torch.device('cpu'), sqrt_laplace_matrix = cls.sqrt_laplace_matrix)
         train_loader = DataLoader(dataset=train_dataset, batch_size=1, shuffle=False)
         
         for beta in train_loader:
@@ -87,6 +86,9 @@ class NeuralNet(RootNet):
         self.normalizer = HyperParameters.sc
         self.batch_size = HyperParameters.batch_size
         self.learning_rate = HyperParameters.learning_rate
+        self.VARYING_STEP_SIZE = HyperParameters.VARYING_STEP_SIZE
+        self.gamma = HyperParameters.gamma
+        self.step_size = HyperParameters.step_size
         
         self.input_size = HyperParameters.input_size
         self.hidden_size = HyperParameters.hidden_size
@@ -106,13 +108,12 @@ class NeuralNet(RootNet):
 
 
     def forward(self, x):
-        x = self.sqrt_laplace_matrix @ x
         output = -self.FCN(x.view(-1, 1, self.input_size))
         output = (1/self.system_parameters.number_of_antennas) * torch.exp(output)
         output = output.view(self.output_shape)
         return output
 
     def train_dataloader(self):
-        train_dataset = BetaDataset(data_path=self.data_path, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples, device=self.device)
+        train_dataset = BetaDataset(data_path=self.data_path, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples, device=self.device, sqrt_laplace_matrix = self.sqrt_laplace_matrix)
         train_loader = DataLoader(dataset=train_dataset, batch_size=self.batch_size, shuffle=False)
         return train_loader
