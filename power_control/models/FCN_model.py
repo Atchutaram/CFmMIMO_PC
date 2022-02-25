@@ -10,25 +10,7 @@ from .root_model import Mode, RootDataset, CommonParameters, RootNet
 
 MODEL_NAME = 'FCN'
 
-class BetaDataset(RootDataset):
-    def __init__(self, data_path, normalizer, mode, n_samples, device):
-        super(BetaDataset, self).__init__(data_path, normalizer, mode, n_samples, device)
-
-    def __getitem__(self, index):
-        beta_file_name = f'betas_sample{index}.pt'
-        beta_file_path = os.path.join(self.path, beta_file_name)
-        beta_original = torch.load(beta_file_path)['betas'].to(dtype=torch.float32)
-        if self.mode == Mode.pre_processing:
-            beta = torch.log(beta_original.reshape((-1,)))
-            return beta
-        
-        beta_torch = torch.log(beta_original)
-        beta_torch = beta_torch.reshape((1, -1,))
-        beta_torch = self.sc.transform(beta_torch)[0]
-        beta_torch = torch.from_numpy(beta_torch).to(dtype=torch.float32, device=self.device)
-        beta_torch = beta_torch.reshape(beta_original.shape)
-
-        return beta_torch, beta_original.to(device=self.device)
+BetaDataset = RootDataset  # if needed inherit from RootDataset and extend it to BetaDataset
 
 
 # Hyper-parameters
