@@ -50,6 +50,8 @@ class SimulationParameters:
             else:
                 self.results_folder = os.path.join(results_base, "results")
                 self.plot_folder = os.path.join(results_base, "plots")
+        else:
+            self.pre_training_data_folder = os.path.join(self.base_folder_path, "mus")
         
 
         if not self.operation_mode == OperatingModes.PLOTTING_ONLY:
@@ -62,6 +64,9 @@ class SimulationParameters:
             if not operation_mode==OperatingModes.TRAINING:
                 handle_deletion_and_creation(self.results_folder)
                 handle_deletion_and_creation(self.plot_folder, force_retain= True)
+            else:
+                handle_deletion_and_creation(self.pre_training_data_folder)
+
         else:
             if not os.path.exists(self.results_folder) or len(os.listdir(self.results_folder)) == 0:
                 print('Run TESTING mode before running PLOTTING_ONLY mode!')

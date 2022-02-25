@@ -56,6 +56,19 @@ class CommonParameters:
     VARYING_STEP_SIZE = False
     InpDataSet = RootDataset
 
+    @classmethod
+    def pre_int(cls, simulation_parameters, system_parameters, is_testing):
+        cls.M = system_parameters.number_of_access_points
+        cls.K = system_parameters.number_of_users
+
+        
+        cls.n_samples = simulation_parameters.number_of_samples
+        cls.training_data_path = simulation_parameters.data_folder
+        cls.pre_training_data_path = '' if is_testing else simulation_parameters.pre_training_data_folder
+        cls.scenario = simulation_parameters.scenario
+        
+
+
 class RootNet(nn.Module):
     def __init__(self, device, system_parameters, interm_folder, grads):
         super(RootNet, self).__init__()
@@ -143,3 +156,6 @@ class RootNet(nn.Module):
         
         print(model_path)
         print(f'{self.name} training Done!')
+    
+    def pretrain(self):
+        pass

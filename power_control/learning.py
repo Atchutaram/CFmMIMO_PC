@@ -12,5 +12,6 @@ def train(simulation_parameters, system_parameters):
     for model_name in models_list:
         initialize_hyper_params(model_name, simulation_parameters, system_parameters)
         model = load_the_latest_model_and_params_if_exists(model_name, model_folder_dict[model_name], interm_folder_dict[model_name], system_parameters, grads, device)
-        
+
+        model.pretrain()        
         model.train()

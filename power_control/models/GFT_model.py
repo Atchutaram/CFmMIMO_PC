@@ -40,19 +40,14 @@ class HyperParameters(CommonParameters):
     
     @classmethod
     def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
-        M = system_parameters.number_of_access_points
-        K = system_parameters.number_of_users
+
+        cls.pre_int(simulation_parameters, system_parameters, is_test_mode)
         cls.sqrt_laplace_matrix = system_parameters.sqrt_laplace_matrix
 
-        cls.input_size = K * M
-        cls.output_size = K * M
-        cls.hidden_size = M * K
-        cls.output_shape = (-1, M, K)
-
-        
-        cls.n_samples = simulation_parameters.number_of_samples
-        cls.training_data_path = simulation_parameters.data_folder
-        cls.scenario = simulation_parameters.scenario
+        cls.input_size = cls.M * cls.K
+        cls.output_size = cls.M * cls.K
+        cls.hidden_size = cls.M * cls.K
+        cls.output_shape = (-1, cls.M, cls.K)
         
         if is_test_mode:
             cls.batch_size = 1

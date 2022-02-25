@@ -19,14 +19,9 @@ class HyperParameters(CommonParameters):
 
     @classmethod
     def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
-        cls.M = system_parameters.number_of_access_points
-        cls.K = system_parameters.number_of_users
-        cls.hid = 50*cls.K
-
         
-        cls.n_samples = simulation_parameters.number_of_samples
-        cls.training_data_path = simulation_parameters.data_folder
-        cls.scenario = simulation_parameters.scenario
+        cls.pre_int(simulation_parameters, system_parameters, is_test_mode)
+        cls.hid = 50*cls.K
         
         if is_test_mode:
             cls.batch_size = 1
