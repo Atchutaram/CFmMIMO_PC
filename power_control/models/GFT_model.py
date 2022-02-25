@@ -105,7 +105,7 @@ class NeuralNet(RootNet):
         
         self.name = MODEL_NAME
         self.to(self.device)
-
+        self.InpDataset = BetaDataset
 
     def forward(self, x):
         output = -self.FCN(x.view(-1, 1, self.input_size))
@@ -114,6 +114,6 @@ class NeuralNet(RootNet):
         return output
 
     def train_dataloader(self):
-        train_dataset = BetaDataset(data_path=self.data_path, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples, device=self.device, sqrt_laplace_matrix = self.sqrt_laplace_matrix)
+        train_dataset = self.InpDataset(data_path=self.data_path, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples, device=self.device, sqrt_laplace_matrix = self.sqrt_laplace_matrix)
         train_loader = DataLoader(dataset=train_dataset, batch_size=self.batch_size, shuffle=False)
         return train_loader

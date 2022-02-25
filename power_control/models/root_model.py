@@ -68,6 +68,7 @@ class RootNet(nn.Module):
 
         self.interm_folder = interm_folder
         self.grads = grads
+        self.InpDataset = RootDataset
         
         
     def set_folder(self, model_folder):
@@ -106,6 +107,11 @@ class RootNet(nn.Module):
             return optimizer, StepLR(optimizer, step_size=self.step_size, gamma=self.gamma)
         else:
             return optimizer
+    
+    def train_dataloader(self):
+        train_dataset = self.InpDataset(data_path=self.data_path, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples, device=self.device)
+        train_loader = DataLoader(dataset=train_dataset, batch_size=self.batch_size, shuffle=False)
+        return train_loader
 
     def train(self):
         train_loader = self.train_dataloader()

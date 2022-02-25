@@ -10,8 +10,6 @@ from .root_model import Mode, RootDataset, CommonParameters, RootNet
 
 MODEL_NAME = 'CNN'
 
-BetaDataset = RootDataset  # if needed inherit from RootDataset and extend it to BetaDataset
-
 
 # Hyper-parameters
 class HyperParameters(CommonParameters):
@@ -105,8 +103,3 @@ class NeuralNet(RootNet):
         out = (1/self.system_parameters.number_of_antennas) * torch.exp(decoded)
         out = torch.squeeze(out, dim=1)
         return out
-
-    def train_dataloader(self):
-        train_dataset = BetaDataset(data_path=self.data_path, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples, device=self.device)
-        train_loader = DataLoader(dataset=train_dataset, batch_size=self.batch_size, shuffle=False)
-        return train_loader
