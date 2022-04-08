@@ -80,8 +80,9 @@ class NeuralNet(RootNet):
             nn.ConvTranspose2d(round(OUT_CH / 2), round(OUT_CH / 4), (3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1)),
             nn.ReLU(),
             nn.ConvTranspose2d(round(OUT_CH / 4), 1, (3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1)),
+            nn.Hardsigmoid()
         )
-        # self.linear1 = nn.Linear(OUT_CH, OUT_CH)
+        self.linear1 = nn.Linear(OUT_CH, OUT_CH)
         
         self.name = MODEL_NAME
         self.to(self.device)
@@ -90,10 +91,9 @@ class NeuralNet(RootNet):
     def forward(self, x):
         encoded = self.encoder(torch.unsqueeze(x, 1))
         encoded_shape = encoded.shape
-        # encoded = self.relu(self.linear1(encoded.view(-1, 1, self.OUT_CH)))
+        encoded = self.relu(self.linear1(encoded.view(-1, 1, self.OUT_CH)))
         decoded = self.decoder(encoded.view(encoded_shape))
-        decoded = -self.relu(decoded)  # so max final output after torch.exp is always between 0 and 1. This conditioning helps regularization.
+        # decoded = -self.relu(decoded)  # so max final output after torch.exp is always between 0 and 1. This conditioning helps regularization.
 
-        out = (1/self.system_parameters.number_of_antennas) * torch.exp(decoded)
-        out = torch.squeeze(out, dim=1)
-        return out
+        # decoded = (1/self.system_parameters.number_of_antennas) * torch.exp(decoded)
+        return torch.squeeze(decoded, dim=1)*1e-1

@@ -87,5 +87,5 @@ class NeuralNet(RootNet):
             decoded_temp = (1/self.system_parameters.number_of_antennas) * torch.exp(decoded_temp)
             decoded.append(torch.unsqueeze(decoded_temp, 0))
         
-        decoded = torch.transpose(torch.cat(decoded), 0, 1).to(device=self.device)
+        decoded = torch.transpose(torch.cat(decoded), 0, 1).to(device=self.device)*1e-1
         return decoded

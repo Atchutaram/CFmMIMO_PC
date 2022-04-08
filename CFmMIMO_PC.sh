@@ -21,4 +21,7 @@ operation_mode=2
 scenario=1
 retain=1
 
+module load anaconda
+source activate CFmMIMO_PC
+
 python CFmMIMO_PC.py --samples $number_of_samples --mode $operation_mode --scenario $scenario --retain $retain --host $triton

@@ -1,6 +1,7 @@
 import os
 import torch
 import time
+from tqdm import tqdm
 
 from .utils import compute_vmat, utility_computation
 from .gradient_handler import grads, grad_f
@@ -29,6 +30,7 @@ def epa(v_mat, device):
 def ref_algo_one(betas, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device):
     import math
     Lf = 1 / 20
+    torch.seed()
     mus_vec_old = torch.rand(betas.shape, requires_grad=False, device=device, dtype=torch.float32)  # random initialization
     t_old = 1
     t_new = t_old
@@ -58,12 +60,14 @@ def ref_algo_one(betas, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device):
 
 def ref_algo_two(betas, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device):
     import math
+    torch.seed()
     mus_vec_old = torch.rand(betas.shape, requires_grad=False, device=device, dtype=torch.float32)  # random initialization
 
     t_old = 0
     t_new = 1
     mus_vec_new = mus_vec_old
     z = mus_vec_new
+    torch.seed()
     y = mus_vec_new + 0.01*torch.rand(betas.shape, requires_grad=False, device=device, dtype=torch.float32)
     v = y * 0
     rho = 0.8
@@ -147,7 +151,7 @@ def run_power_control_algos(simulation_parameters, system_parameters, algo_list,
     phi_cross_mat = system_parameters.phi_cross_mat
     tau = system_parameters.tau
 
-    v_mat = compute_vmat(betas, zeta_p, T_p, phi_cross_mat, device)
+    v_mat = compute_vmat(betas, zeta_p, T_p, phi_cross_mat)
 
     latency = {}
     SE = {}
@@ -233,6 +237,18 @@ def run_power_control_algos(simulation_parameters, system_parameters, algo_list,
 
         _, SE[algo_name] = utility_computation(betas, mus, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)
     
+    model_name = 'TMN'
+    if model_name in algo_list:
+        algo_name = model_name
+        
+
+        time_then = time.perf_counter()
+        mus = deploy(models[model_name], betas, model_name, device, system_parameters=system_parameters)
+        time_now = time.perf_counter()
+        latency[algo_name] = round(time_now - time_then, 6)
+
+        _, SE[algo_name] = utility_computation(betas, mus, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)
+    
     return SE, latency
 
 def save_latency(result_path, latency):
@@ -283,7 +299,7 @@ def test_and_plot(simulation_parameters, system_parameters, plotting_only):
         for algo_name in algo_list:
             avg_latency[algo_name] = 0
         
-        for sample_id in range(number_of_samples):
+        for sample_id in tqdm(range(number_of_samples)):
             
             SE, latency = run_power_control_algos(simulation_parameters, system_parameters, algo_list, models, sample_id)
         

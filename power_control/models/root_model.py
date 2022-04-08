@@ -7,7 +7,6 @@ from enum import Enum, auto
 from torch.utils.data import Dataset
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
-import math
 
 
 class Mode(Enum):
@@ -47,13 +46,14 @@ class RootDataset(Dataset):
 class CommonParameters:
     n_samples = 1
     batch_size = 1
-    num_epochs = 200
-    learning_rate = 1e-4
 
-    gamma = 0.1
-    step_size = 30
-    eta = 1e-5
+    learning_rate = 1e-4
+    gamma = 1e-1
+    step_size = 600
+    num_epochs = 2*step_size
+    eta = 1e-4
     VARYING_STEP_SIZE = False
+
     InpDataSet = RootDataset
 
     @classmethod
@@ -83,7 +83,7 @@ class RootNet(nn.Module):
 
         self.interm_folder = interm_folder
         self.grads = grads
-        self.InpDataset = RootDataset
+        self.InpDataset = CommonParameters.InpDataSet
         
         
     def set_folder(self, model_folder):
@@ -93,7 +93,7 @@ class RootNet(nn.Module):
         beta_torch, beta_original = batch
 
         self.opt.zero_grad()
-        self.slack_variable = torch.tanh(self.slack_variable_in)
+        self.slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
         mus = self(beta_torch)
 
         with torch.no_grad():
@@ -124,11 +124,12 @@ class RootNet(nn.Module):
             return optimizer
     
     def train_dataloader(self):
-        train_dataset = self.InpDataset(data_path=self.data_path, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples, device=self.device)
+        train_dataset = self.InpDataset(data_path=self.data_path, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples, device=self.device, system_parameters=self.system_parameters)
         train_loader = DataLoader(dataset=train_dataset, batch_size=self.batch_size, shuffle=False)
         return train_loader
 
-    def train(self):
+    def training_loop(self):
+        self.train()
         train_loader = self.train_dataloader()
         
         
@@ -146,7 +147,9 @@ class RootNet(nn.Module):
                 
             if epoch_id % 10 == 0:
                 tqdm.write(f'\nUtility: {-utility.min().item()}')
-        
+    
+    
+    def save(self):
         date_str = str(datetime.datetime.now().date()).replace(':', '_').replace('.', '_').replace('-', '_')
         time_str = str(datetime.datetime.now().time()).replace(':', '_').replace('.', '_').replace('-', '_')
         model_file_name = f'model_{date_str}_{time_str}.pth'

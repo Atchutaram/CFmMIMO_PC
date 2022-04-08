@@ -1,5 +1,6 @@
 import torch
 import warnings
+from math import ceil
 
 def compute_laplace_mat(ap_positions_list, device):
     M = ap_positions_list.shape[0]
@@ -74,26 +75,28 @@ class SystemParameters:
         
         self.number_of_antennas = 1  # N
         self.param_D = torch.tensor(param_D, requires_grad=False, device=simulation_parameters.device, dtype=torch.float32)  # D
-        self.number_of_users = number_of_users  # K
+        self.number_of_users = ceil(number_of_users/4)*4  # K
         self.access_point_density = access_point_density
         self.models_list = models_list
         simulation_parameters.handle_model_subfolders(self.models_list)
 
-        self.number_of_access_points = int(access_point_density * self.param_D.item())  # M
         self.area_width = torch.sqrt(self.param_D)  # in Km
         self.area_height = self.area_width
+        self.number_of_access_points = ceil(access_point_density * self.param_D.item()/4)*4  # M
 
+        torch.manual_seed(seed=0)
         random_mat = torch.normal(0, 1, (self.T_p, self.T_p))
         u, _, _ = torch.linalg.svd(random_mat)
         phi_orth = u
         
+        torch.manual_seed(seed=1)
         column_indices = torch.randint(0, self.T_p, [self.number_of_users])
         phi = torch.index_select(phi_orth, 0, column_indices)
         self.phi_cross_mat = torch.abs(phi.conj() @ phi.T).to(simulation_parameters.device)
 
         area_dims = torch.tensor([self.area_width, self.area_height], device=simulation_parameters.device, requires_grad=False, dtype=torch.float32)
         
-        torch.manual_seed(seed=0)
+        torch.manual_seed(seed=2)
         rand_vec = torch.rand((2, self.number_of_access_points), device=simulation_parameters.device, requires_grad=False, dtype=torch.float32)-0.5  # 2 X M
         
         AP_positions = torch.einsum('d,dm->md ', area_dims, rand_vec).to(simulation_parameters.device)

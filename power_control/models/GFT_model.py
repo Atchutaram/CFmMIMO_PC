@@ -36,8 +36,8 @@ class HyperParameters(CommonParameters):
     sc = StandardScaler()
     sc_path = os.path.join(os.getcwd(), f'{MODEL_NAME}_sc.pkl')
     training_data_path = ''
-    InpDataSet = BetaDataset
     
+    InpDataSet = BetaDataset
     @classmethod
     def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
 
@@ -91,22 +91,22 @@ class NeuralNet(RootNet):
         self.output_size = HyperParameters.output_size
         self.output_shape = HyperParameters.output_shape
         
-        self.FCN = nn.Sequential(
+        self.GFT = nn.Sequential(
             nn.Linear(self.input_size, self.hidden_size),
             nn.ReLU(),
             nn.Linear(self.hidden_size, self.output_size),
-            nn.ReLU(),
+            nn.Hardsigmoid(),
         )
         self.sqrt_laplace_matrix = system_parameters.sqrt_laplace_matrix
         
         self.name = MODEL_NAME
         self.to(self.device)
-        self.InpDataset = BetaDataset
+        self.InpDataset = BetaDataset  # D
 
     def forward(self, x):
-        output = -self.FCN(x.view(-1, 1, self.input_size))
-        output = (1/self.system_parameters.number_of_antennas) * torch.exp(output)
-        output = output.view(self.output_shape)
+        output = self.GFT(x.view(-1, 1, self.input_size))
+        # output = (1/self.system_parameters.number_of_antennas) * torch.exp(output)
+        output = output.view(self.output_shape)*1e-1
         return output
 
     def train_dataloader(self):

@@ -5,7 +5,7 @@ from parameters.sim_params import OperatingModes
 
 default_number_of_samples = 2000
 testing_number_of_samples = 200
-default_number_of_samples = 20
+# default_number_of_samples = 8000
 testing_number_of_samples = 20
 
 
@@ -114,9 +114,13 @@ if __name__ == '__main__':
         inp_param_D = 1
         inp_number_of_users = 20
         inp_access_point_density = 100
+        
+        # inp_param_D = 0.30
+        # inp_number_of_users = 10
+        # inp_access_point_density = 100
         models_list = ['FCN', 'CNN', 'GFT', 'TDN']
-        models_list = ['TDN', 'GFT', 'CNN', 'FCN']
-        # models_list = ['FCN']
+        # models_list = ['TDN', 'GFT', 'CNN', 'FCN']
+        models_list = ['TMN',]
     elif simulation_parameters.scenario==2:
         inp_param_D = 1
         inp_number_of_users = 500
@@ -148,15 +152,15 @@ if __name__ == '__main__':
         if all_mode_flag:
             operating_mode = OperatingModes.TESTING
             number_of_samples = testing_number_of_samples
-            retain = False
             
             simulation_parameters = SimulationParameters(root, number_of_samples, operating_mode, scenario, retain, triton_results_base)
             system_parameters = SystemParameters(simulation_parameters, inp_param_D, inp_number_of_users, inp_access_point_density, models_list)
             
             time_then = time.perf_counter()
 
-            for sample_id in range(number_of_samples):
-                data_gen(simulation_parameters, system_parameters, sample_id)
+            if not os.listdir(simulation_parameters.data_folder):
+                for sample_id in range(number_of_samples):
+                    data_gen(simulation_parameters, system_parameters, sample_id)
         
             test_and_plot(simulation_parameters, system_parameters, plotting_only=False)
 

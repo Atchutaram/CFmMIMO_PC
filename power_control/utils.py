@@ -1,12 +1,12 @@
 import torch
 
 
-def compute_vmat(betas, zeta_p, T_p, phi_cross_mat, device):
+def compute_vmat(betas, zeta_p, T_p, phi_cross_mat):
     # computes Eq (5)
     # phi_cross_mat K X K
     # betas b X M X K
 
-    den = torch.ones(betas.shape, device=device, requires_grad=False, dtype=torch.float32) + zeta_p * T_p * (betas @ (phi_cross_mat ** 2))
+    den = torch.ones(betas.shape, device=betas.device, requires_grad=False, dtype=torch.float32) + zeta_p * T_p * (betas @ (phi_cross_mat ** 2))
     v_mat = (zeta_p * T_p * (betas ** 2)) / den
 
     return v_mat

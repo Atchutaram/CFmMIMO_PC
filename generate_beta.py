@@ -2,13 +2,14 @@
 # import numpy as np
 import torch
 import os
-import sys
 
 
+NoSeedFlag = True
 
 def get_user_config(area_width, area_height, number_of_users, device):
-    torch.seed()
     area_dims = torch.tensor([area_width, area_height], device=device, requires_grad=False, dtype=torch.float32)
+    if not NoSeedFlag:
+        torch.seed()
     rand_vec = (torch.rand((2,number_of_users), device=device, requires_grad=False, dtype=torch.float32) - 0.5)
     user_config = torch.einsum('d,dm->md ', area_dims, rand_vec).to(device)
     return user_config
@@ -39,6 +40,8 @@ def path_loss_model(L, d_0, d_1, log_d_0, log_d_1, d_mat):
     return PL
 
 def large_scale_fading_computing(L, d_0, d_1, log_d_0, log_d_1, sigma_sh, d_mat, device):
+    if not NoSeedFlag:
+        torch.seed()
     Z_temp = torch.normal(mean=0, std=sigma_sh, size=d_mat.shape, device=device, requires_grad=False, dtype=torch.float32)
     PL = path_loss_model(L, d_0, d_1, log_d_0, log_d_1, d_mat) + Z_temp
     betas = 10 ** (PL / 10)

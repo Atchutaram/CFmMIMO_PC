@@ -70,7 +70,7 @@ class NeuralNet(RootNet):
             nn.Linear(self.input_size, self.hidden_size),
             nn.ReLU(),
             nn.Linear(self.hidden_size, self.output_size),
-            nn.ReLU(),
+            nn.Hardsigmoid(),
         )
         
         self.name = MODEL_NAME
@@ -78,7 +78,6 @@ class NeuralNet(RootNet):
 
 
     def forward(self, x):
-        output = -self.FCN(x.view(-1, 1, self.input_size))
-        output = (1/self.system_parameters.number_of_antennas) * torch.exp(output)
-        output = output.view(self.output_shape)
+        output = self.FCN(x.view(-1, 1, self.input_size))
+        output = output.view(self.output_shape)*1e-1
         return output

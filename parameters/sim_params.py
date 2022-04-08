@@ -24,6 +24,7 @@ class SimulationParameters:
         self.scenario = scenario
         
         device_text = "cuda" if OperatingModes.TRAINING and torch.cuda.is_available() else "cpu"
+        print(device_text)
         self.device = torch.device(device_text)
         
         self.root_path = root

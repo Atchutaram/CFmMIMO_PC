@@ -6,7 +6,6 @@ from .utils import compute_vmat, compute_smooth_min
 
 def compute_num_k(betas, mus, N, zeta_d, T_p, T_c, v_mat, phi_cross_mat, k, tau):
     nu_mat_k = torch.einsum('k, bmk, bm -> bmk', phi_cross_mat[:, k], (torch.sqrt(v_mat) / betas), betas[:, :, k])
-
     nu_dot_mu = torch.einsum('bmk,bmk->bk', nu_mat_k, mus)  # B X K
     beta_k_dot_mus = torch.einsum('bm,bmk->bmk', betas[:, :, k], mus)
     b_vec = zeta_d * (nu_dot_mu)**2
@@ -51,14 +50,32 @@ def grad_f(betas, mus, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device):
     return [grad, SE]
 
 def grads(betas_in, mus_in, eta, slack_variable, device, system_parameters):
+    epsilon = 1e-12
     with torch.no_grad():
         tau = system_parameters.tau
-        v_mat = compute_vmat(betas_in, system_parameters.zeta_p, system_parameters.T_p, system_parameters.phi_cross_mat, device)  # Eq (5) b X M X K
+        v_mat = compute_vmat(betas_in, system_parameters.zeta_p, system_parameters.T_p, system_parameters.phi_cross_mat)  # Eq (5) b X M X K
         [mus_out, SE] = grad_f(betas_in, mus_in, system_parameters.number_of_antennas, system_parameters.zeta_d, system_parameters.T_p, system_parameters.T_c, system_parameters.phi_cross_mat, v_mat, tau, device)  # [b X M X K, b X K]
         
-        temp = torch.unsqueeze(1 / (1 / system_parameters.number_of_antennas - (torch.norm(mus_in, dim=2)) ** 2 - slack_variable ** 2), -1)  # b X M X 1
-        mus_out -= eta * mus_in * temp  # b X M X K
-        grad_wrt_slack = - eta * slack_variable * temp.sum(dim=1)  # b X 1
+        temp_den = (1 / system_parameters.number_of_antennas - (torch.norm(mus_in, dim=2)) ** 2 - slack_variable ** 2)
+
+        if torch.any(temp_den<0):
+            if eta > epsilon:
+                print('Increase model.eta or reduce step size')
+                print('num_of_violations: ', (temp_den<0).sum())
+                print('max_violations: ', ((torch.norm(mus_in, dim=2)) ** 2).max(), 'slack_variable: ', slack_variable)
+                from sys import exit
+                exit()
+        
+        temp = torch.unsqueeze(1/temp_den, -1)  # b X M X 1
+
+        if eta > epsilon:
+            mus_temp = -eta * torch.unsqueeze((mus_in * temp).sum(dim=1), 1)  # b X 1 X K
+            grad_wrt_slack = - eta * slack_variable * temp.sum(dim=1)  # b X 1
+
+            # print(torch.linalg.norm((mus_in * temp).sum(dim=1)).item(), torch.linalg.norm(mus_out).item())
+            mus_out += mus_temp  # results in b X M X K
+        else:
+            grad_wrt_slack = 0 * slack_variable * temp.sum(dim=1)  # b X 1
 
         mus_out, grad_wrt_slack = [-1 * mus_out, -1 * grad_wrt_slack]  # do not merge with earlier equation; keep it different for readability.
         utility = compute_smooth_min(SE, tau)  # b X 1
