@@ -129,6 +129,7 @@ class NeuralNet(RootNet):
         self.VARYING_STEP_SIZE = HyperParameters.VARYING_STEP_SIZE
         self.gamma = HyperParameters.gamma
         self.step_size = HyperParameters.step_size
+        self.InpDataset = HyperParameters.InpDataSet
 
         K = HyperParameters.K
         M = HyperParameters.M
@@ -143,7 +144,6 @@ class NeuralNet(RootNet):
         
         
         self.name = MODEL_NAME
-        self.InpDataset = BetaDataset  # D
         self.hardsigmoid = nn.Hardsigmoid()
         self.batch_norm2d_1 = nn.BatchNorm2d(num_layers)
         self.batch_norm2d_2 = nn.BatchNorm2d(1)
@@ -171,3 +171,8 @@ class NeuralNet(RootNet):
         # x -> b-M-K
         output = self.hardsigmoid(x)
         return output*1e-1
+
+    def train_dataloader(self):
+        train_dataset = self.InpDataset(data_path=self.data_path, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples, device=self.device, system_parameters=self.system_parameters)
+        train_loader = DataLoader(dataset=train_dataset, batch_size=self.batch_size, shuffle=False)
+        return train_loader

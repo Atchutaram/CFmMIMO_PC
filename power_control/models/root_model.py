@@ -124,7 +124,7 @@ class RootNet(nn.Module):
             return optimizer
     
     def train_dataloader(self):
-        train_dataset = self.InpDataset(data_path=self.data_path, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples, device=self.device, system_parameters=self.system_parameters)
+        train_dataset = self.InpDataset(data_path=self.data_path, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples, device=self.device)
         train_loader = DataLoader(dataset=train_dataset, batch_size=self.batch_size, shuffle=False)
         return train_loader
 
