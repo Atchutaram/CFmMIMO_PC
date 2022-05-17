@@ -237,7 +237,7 @@ def run_power_control_algos(simulation_parameters, system_parameters, algo_list,
 
         _, SE[algo_name] = utility_computation(betas, mus, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)
     
-    model_name = 'TMN'
+    model_name = 'ANN'
     if model_name in algo_list:
         algo_name = model_name
         

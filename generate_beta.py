@@ -4,7 +4,7 @@ import torch
 import os
 
 
-NoSeedFlag = True
+NoSeedFlag = False  # False ensures testing data is different from training data.
 
 def get_user_config(area_width, area_height, number_of_users, device):
     area_dims = torch.tensor([area_width, area_height], device=device, requires_grad=False, dtype=torch.float32)
@@ -47,8 +47,11 @@ def large_scale_fading_computing(L, d_0, d_1, log_d_0, log_d_1, sigma_sh, d_mat,
     betas = 10 ** (PL / 10)
     return betas
 
-def data_gen(simulation_parameters, system_parameters, sample_id):
-    file_path = simulation_parameters.data_folder
+def data_gen(simulation_parameters, system_parameters, sample_id, validation_data=False):
+    if validation_data:
+        file_path = simulation_parameters.validation_data_folder
+    else:
+        file_path = simulation_parameters.data_folder
     device = simulation_parameters.device
     area_width = system_parameters.area_width
     area_height = system_parameters.area_height

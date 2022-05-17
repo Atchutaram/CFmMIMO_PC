@@ -1,15 +1,32 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import os
 import pickle
 from sklearn.preprocessing import StandardScaler
+from torch.optim.lr_scheduler import StepLR
+import math
+
 
 from .root_model import Mode, RootDataset, CommonParameters, RootNet
+from .utils import EncoderLayer, Norm,  PositionalEncoder
 
 
-MODEL_NAME = 'FCN'
+MODEL_NAME = 'ANN'
 
+# class BetaDataset(RootDataset):
+#     def __init__(self, data_path, normalizer, mode, n_samples, device):
+#         super(BetaDataset, self).__init__(data_path, normalizer, mode, n_samples, device)
+
+#     def __getitem__(self, index):
+#         beta_file_name = f'betas_sample{index}.pt'
+#         beta_file_path = os.path.join(self.path, beta_file_name)
+#         beta_original = torch.load(beta_file_path)['betas'].to(dtype=torch.float32)
+
+#         b_max = beta_original.max()
+#         beta_torch = 20*(beta_original/b_max).to(dtype=torch.float32, device=self.device)
+#         return beta_torch, beta_original.to(device=self.device)
 class BetaDataset(RootDataset):
     def __init__(self, data_path, normalizer, mode, n_samples, device):
         self.path = data_path
@@ -41,26 +58,26 @@ class HyperParameters(CommonParameters):
     training_data_path = ''
     InpDataSet = BetaDataset
 
-    learning_rate = 1e-5
+    # learning_rate = 1e-6
+    # eta = 1e-6
+    # step_size = 800
+    # num_epochs = 2*step_size
+    # VARYING_STEP_SIZE = True
 
     @classmethod
     def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
         
         cls.pre_int(simulation_parameters, system_parameters, is_test_mode)
-        cls.input_size = cls.M * cls.K
-        cls.output_size = cls.M * cls.K
-        cls.hidden_size = cls.M * cls.K
-        cls.output_shape = (-1, cls.M, cls.K)
+        if cls.scenario == 1:
+            cls.batch_size = 8 * 2
+            cls.OUT_CH = 600
+        else:
+            cls.batch_size = 1
+            cls.OUT_CH = 4
         
         if is_test_mode:
             cls.batch_size = 1
             return
-
-        if cls.scenario == 1:
-            cls.batch_size = 8 * 2
-        else:
-            cls.batch_size = 1
-        
         
 
         # train_dataset = cls.InpDataSet(data_path=cls.training_data_path, normalizer=cls.sc, mode=Mode.pre_processing, n_samples=cls.n_samples, device=torch.device('cpu'))
@@ -72,6 +89,7 @@ class HyperParameters(CommonParameters):
 
         # pickle.dump(cls.sc, open(cls.sc_path, 'wb'))  # saving sc for loading later in testing phase
         # print(f'{cls.sc_path} dumped!')
+    
     
 
 class NeuralNet(RootNet):
@@ -88,39 +106,54 @@ class NeuralNet(RootNet):
         self.VARYING_STEP_SIZE = HyperParameters.VARYING_STEP_SIZE
         self.gamma = HyperParameters.gamma
         self.step_size = HyperParameters.step_size
-        self.input_size = HyperParameters.input_size
-        self.hidden_size = HyperParameters.hidden_size
-        self.output_size = HyperParameters.output_size
-        self.output_shape = HyperParameters.output_shape
         self.InpDataset = HyperParameters.InpDataSet
-        dropout = 0.2
+
+        K = HyperParameters.K
+        M = HyperParameters.M
+        OUT_CH = HyperParameters.OUT_CH
+        self.OUT_CH = OUT_CH
         
-        self.FCN = nn.Sequential(
-            nn.Linear(self.input_size, self.hidden_size),
-            nn.ReLU(),
-            nn.Dropout(p=dropout),
-            nn.BatchNorm1d(1),
-            # nn.Linear(self.hidden_size, self.hidden_size),
-            # nn.ReLU(),
-            # nn.Dropout(p=dropout),
-            # nn.BatchNorm1d(1),
-            # nn.Linear(self.hidden_size, self.hidden_size),
-            # nn.ReLU(),
-            # nn.Dropout(p=dropout),
-            # nn.BatchNorm1d(1),
-            # nn.Linear(self.hidden_size, self.hidden_size),
-            # nn.ReLU(),
-            # nn.Dropout(p=dropout),
-            # nn.BatchNorm1d(1),
-            nn.Linear(self.hidden_size, self.output_size),
-            nn.Sigmoid(),
-        )
+        
+        dropout = 0.1
+        heads = 20
+
+        self.pe = PositionalEncoder(M, max_seq_len = K)
+        self.layer1 = EncoderLayer(M, heads=heads, dropout=dropout)
+        self.layer2 = EncoderLayer(M, heads=heads, dropout=dropout)
+        self.layer3 = EncoderLayer(M, heads=heads, dropout=dropout)
+        # self.layer4 = EncoderLayer(M, heads=heads, dropout=dropout)
+        # self.layer5 = EncoderLayer(M, heads=heads, dropout=dropout)
+        # self.layer6 = EncoderLayer(M, heads=heads, dropout=dropout)
+        self.norm = Norm(M)
         
         self.name = MODEL_NAME
         self.to(self.device)
 
 
     def forward(self, x):
-        output = self.FCN(x.view(-1, 1, self.input_size))
-        output = output.view(self.output_shape)*1e-1
-        return output
+        x = x.transpose(1,2).contiguous()
+        # x = self.pe(x)
+        
+        x = self.layer1(x, mask=self.system_parameters.phi_cross_mat**2)
+        
+        x = self.layer2(x, mask=self.system_parameters.phi_cross_mat**2)
+        
+        x = self.layer3(x, mask=self.system_parameters.phi_cross_mat**2)
+        
+        # x = self.layer4(x, mask=self.system_parameters.phi_cross_mat**2)
+        
+        # x = self.layer5(x, mask=self.system_parameters.phi_cross_mat**2)
+        
+        # x = self.layer6(x, mask=self.system_parameters.phi_cross_mat**2)
+
+        x = self.norm(x)
+        x = torch.sigmoid(x)
+
+        return x.transpose(1,2).contiguous()*1e-1
+    
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
+        if self.VARYING_STEP_SIZE:
+            return optimizer, StepLR(optimizer, step_size=self.step_size, gamma=self.gamma)
+        else:
+            return optimizer

@@ -68,17 +68,22 @@ class NeuralNet(RootNet):
         self.encoder = nn.Sequential(
             nn.Conv2d(1, round(OUT_CH / 4), (3, 3), stride=(2, 2), padding=(1, 1)), # input channels, output channels, kernel size
             nn.ReLU(),
+            nn.Dropout(p=0.2),
             nn.Conv2d(round(OUT_CH / 4), round(OUT_CH / 2), (3, 3), stride=(2, 2), padding=(1, 1)), # input channels, output channels, kernel size
             nn.ReLU(),
+            nn.Dropout(p=0.2),
             nn.Conv2d(round(OUT_CH / 2), OUT_CH, (round(M / 4), round(K / 4))),
             nn.ReLU(),
+            nn.Dropout(p=0.2),
         )
 
         self.decoder = nn.Sequential(
             nn.ConvTranspose2d(OUT_CH, round(OUT_CH / 2), (round(M / 4), round(K / 4))),
             nn.ReLU(),
+            nn.Dropout(p=0.2),
             nn.ConvTranspose2d(round(OUT_CH / 2), round(OUT_CH / 4), (3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1)),
             nn.ReLU(),
+            nn.Dropout(p=0.2),
             nn.ConvTranspose2d(round(OUT_CH / 4), 1, (3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1)),
             nn.Hardsigmoid()
         )

@@ -49,7 +49,7 @@ class CommonParameters:
 
     learning_rate = 1e-4
     gamma = 1e-1
-    step_size = 600
+    step_size = 5
     num_epochs = 2*step_size
     eta = 1e-4
     VARYING_STEP_SIZE = False
@@ -84,6 +84,7 @@ class RootNet(nn.Module):
         self.interm_folder = interm_folder
         self.grads = grads
         self.InpDataset = CommonParameters.InpDataSet
+        self.name = None
         
         
     def set_folder(self, model_folder):
@@ -146,7 +147,7 @@ class RootNet(nn.Module):
                 self.scheduler.step()
                 
             if epoch_id % 10 == 0:
-                tqdm.write(f'\nUtility: {-utility.min().item()}')
+                tqdm.write(f'\n{self.name} Utility: {-utility.min().item()}')
     
     
     def save(self):

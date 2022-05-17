@@ -44,6 +44,7 @@ class SimulationParameters:
             self.interm_folder = os.path.join(results_base, 'interm_models')
             
         self.data_folder = os.path.join(self.base_folder_path, "betas")
+        self.validation_data_folder = os.path.join(self.base_folder_path, "betas_val")
         if not operation_mode==OperatingModes.TRAINING:
             if results_base is None:
                 self.results_folder = os.path.join(self.base_folder_path, "results")
@@ -67,6 +68,7 @@ class SimulationParameters:
                 handle_deletion_and_creation(self.plot_folder, force_retain= True)
             else:
                 handle_deletion_and_creation(self.pre_training_data_folder)
+                handle_deletion_and_creation(self.validation_data_folder, 200, retain)
 
         else:
             if not os.path.exists(self.results_folder) or len(os.listdir(self.results_folder)) == 0:

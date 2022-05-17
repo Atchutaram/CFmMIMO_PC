@@ -1,4 +1,5 @@
 import torch
+import math
 
 
 def compute_vmat(betas, zeta_p, T_p, phi_cross_mat):
@@ -45,5 +46,9 @@ def utility_computation(betas, mus, N, geta_d, T_p, T_c, phi_cross_mat, v_mat, t
     SE = torch.zeros((K,), device=device, requires_grad=False, dtype=torch.float32)
     for k in range(K):
         _, SE[k] = individual_utility_computation(betas, mus, N, geta_d, T_p, T_c, v_mat, phi_cross_mat, k)  # Eq (16)
+    
+    if math.isnan(SE.sum().item()):
+        print('Something wetn wrong! The utility is nan')
+        print(betas.sum().item(), mus.sum().item())
 
     return [compute_smooth_min(SE, tau), SE]

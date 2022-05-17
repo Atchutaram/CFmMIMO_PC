@@ -49,7 +49,7 @@ def compute_laplace_mat(ap_positions_list, device):
 
 
 class SystemParameters:
-    def __init__(self, simulation_parameters, param_D, number_of_users, access_point_density, models_list):
+    def __init__(self, simulation_parameters, coverage_area, number_of_users, access_point_density, models_list):
         self.param_L = torch.tensor(140.715087, device=simulation_parameters.device, requires_grad=False, dtype=torch.float32)
         self.d_0 = torch.tensor(0.01, device=simulation_parameters.device, requires_grad=False, dtype=torch.float32)
         self.d_1 = torch.tensor(0.05, device=simulation_parameters.device, requires_grad=False, dtype=torch.float32)
@@ -74,15 +74,16 @@ class SystemParameters:
 
         
         self.number_of_antennas = 1  # N
-        self.param_D = torch.tensor(param_D, requires_grad=False, device=simulation_parameters.device, dtype=torch.float32)  # D
-        self.number_of_users = ceil(number_of_users/4)*4  # K
+        self.coverage_area = torch.tensor(coverage_area, requires_grad=False, device=simulation_parameters.device, dtype=torch.float32)  # D
+        # self.number_of_users = ceil(number_of_users/4)*4  # K
+        self.number_of_users = number_of_users  # K
         self.access_point_density = access_point_density
         self.models_list = models_list
         simulation_parameters.handle_model_subfolders(self.models_list)
 
-        self.area_width = torch.sqrt(self.param_D)  # in Km
+        self.area_width = torch.sqrt(self.coverage_area)  # in Km
         self.area_height = self.area_width
-        self.number_of_access_points = ceil(access_point_density * self.param_D.item()/4)*4  # M
+        self.number_of_access_points = ceil(access_point_density * self.coverage_area.item()/4)*4  # M
 
         torch.manual_seed(seed=0)
         random_mat = torch.normal(0, 1, (self.T_p, self.T_p))
@@ -91,6 +92,7 @@ class SystemParameters:
         
         torch.manual_seed(seed=1)
         column_indices = torch.randint(0, self.T_p, [self.number_of_users])
+        # column_indices = torch.arange(0, self.number_of_users)
         phi = torch.index_select(phi_orth, 0, column_indices)
         self.phi_cross_mat = torch.abs(phi.conj() @ phi.T).to(simulation_parameters.device)
 
