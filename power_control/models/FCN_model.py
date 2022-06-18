@@ -6,6 +6,7 @@ import pickle
 from sklearn.preprocessing import StandardScaler
 
 from .root_model import Mode, RootDataset, CommonParameters, RootNet
+from .utils import Norm
 
 
 MODEL_NAME = 'FCN'
@@ -41,22 +42,28 @@ class HyperParameters(CommonParameters):
     training_data_path = ''
     InpDataSet = BetaDataset
 
-    learning_rate = 1e-5
-
     @classmethod
     def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
         
         cls.pre_int(simulation_parameters, system_parameters, is_test_mode)
+        cls.dropout = 0.2
         cls.input_size = cls.M * cls.K
         cls.output_size = cls.M * cls.K
-        cls.hidden_size = cls.M * cls.K
+        if cls.dropout < 1e-5:
+            cls.hidden_size = cls.M * cls.K * 4
+        else:
+            cls.hidden_size = int((1/cls.dropout)*cls.M * cls.K) * 4
+
         cls.output_shape = (-1, cls.M, cls.K)
         
         if is_test_mode:
             cls.batch_size = 1
             return
 
-        if cls.scenario == 1:
+        if cls.scenario == 0:
+            # cls.learning_rate = 1e-5
+            cls.batch_size = 8 * 2
+        elif cls.scenario == 1:
             cls.batch_size = 8 * 2
         else:
             cls.batch_size = 1
@@ -82,6 +89,7 @@ class NeuralNet(RootNet):
         self.num_epochs = HyperParameters.num_epochs
         self.eta = HyperParameters.eta
         self.data_path = HyperParameters.training_data_path
+        self.val_data_path = HyperParameters.validation_data_path
         self.normalizer = HyperParameters.sc
         self.batch_size = HyperParameters.batch_size
         self.learning_rate = HyperParameters.learning_rate
@@ -93,25 +101,35 @@ class NeuralNet(RootNet):
         self.output_size = HyperParameters.output_size
         self.output_shape = HyperParameters.output_shape
         self.InpDataset = HyperParameters.InpDataSet
-        dropout = 0.2
+        self.dropout = HyperParameters.dropout
         
         self.FCN = nn.Sequential(
+            Norm(self.input_size),
             nn.Linear(self.input_size, self.hidden_size),
             nn.ReLU(),
-            nn.Dropout(p=dropout),
-            nn.BatchNorm1d(1),
+            nn.Dropout(p=self.dropout),
+
+            # Norm(self.hidden_size),
             # nn.Linear(self.hidden_size, self.hidden_size),
             # nn.ReLU(),
-            # nn.Dropout(p=dropout),
-            # nn.BatchNorm1d(1),
+            # nn.Dropout(p=self.dropout),
+            
+            # Norm(self.hidden_size),
             # nn.Linear(self.hidden_size, self.hidden_size),
             # nn.ReLU(),
-            # nn.Dropout(p=dropout),
-            # nn.BatchNorm1d(1),
+            # nn.Dropout(p=self.dropout),
+            
+            # Norm(self.hidden_size),
             # nn.Linear(self.hidden_size, self.hidden_size),
             # nn.ReLU(),
-            # nn.Dropout(p=dropout),
-            # nn.BatchNorm1d(1),
+            # nn.Dropout(p=self.dropout),
+            
+            # Norm(self.hidden_size),
+            # nn.Linear(self.hidden_size, self.hidden_size),
+            # nn.ReLU(),
+            # nn.Dropout(p=self.dropout),
+
+            Norm(self.hidden_size),
             nn.Linear(self.hidden_size, self.output_size),
             nn.Sigmoid(),
         )

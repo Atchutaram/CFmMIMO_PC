@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --time=00:05:00
+#SBATCH --time=02:00:00
 #SBATCH --job-name=main_learn
-#SBATCH --mem-per-cpu=500M
+#SBATCH --mem-per-cpu=8G
 #SBATCH --cpus-per-task=1
 #SBATCH --gres=gpu:1
 #SBATCH --output=main_learn.out
@@ -19,6 +19,12 @@ retain=1
 number_of_samples=200
 operation_mode=2
 scenario=1
+retain=1
+
+# Final
+number_of_samples=400000
+operation_mode=1
+scenario=0
 retain=1
 
 module load anaconda

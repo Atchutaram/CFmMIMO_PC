@@ -68,12 +68,13 @@ class HyperParameters(CommonParameters):
     def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
         
         cls.pre_int(simulation_parameters, system_parameters, is_test_mode)
-        if cls.scenario == 1:
+
+        if cls.scenario == 0:
             cls.batch_size = 8 * 2
-            cls.OUT_CH = 600
+        elif cls.scenario == 1:
+            cls.batch_size = 8 * 2
         else:
             cls.batch_size = 1
-            cls.OUT_CH = 4
         
         if is_test_mode:
             cls.batch_size = 1
@@ -100,6 +101,7 @@ class NeuralNet(RootNet):
         self.num_epochs = HyperParameters.num_epochs
         self.eta = HyperParameters.eta
         self.data_path = HyperParameters.training_data_path
+        self.val_data_path = HyperParameters.validation_data_path
         self.normalizer = HyperParameters.sc
         self.batch_size = HyperParameters.batch_size
         self.learning_rate = HyperParameters.learning_rate
@@ -110,20 +112,18 @@ class NeuralNet(RootNet):
 
         K = HyperParameters.K
         M = HyperParameters.M
-        OUT_CH = HyperParameters.OUT_CH
-        self.OUT_CH = OUT_CH
         
         
-        dropout = 0.1
-        heads = 20
+        dropout = 0.2
+        heads = 5
 
-        self.pe = PositionalEncoder(M, max_seq_len = K)
+        # self.pe = PositionalEncoder(M, max_seq_len = K)
         self.layer1 = EncoderLayer(M, heads=heads, dropout=dropout)
         self.layer2 = EncoderLayer(M, heads=heads, dropout=dropout)
         self.layer3 = EncoderLayer(M, heads=heads, dropout=dropout)
-        # self.layer4 = EncoderLayer(M, heads=heads, dropout=dropout)
-        # self.layer5 = EncoderLayer(M, heads=heads, dropout=dropout)
-        # self.layer6 = EncoderLayer(M, heads=heads, dropout=dropout)
+        self.layer4 = EncoderLayer(M, heads=heads, dropout=dropout)
+        self.layer5 = EncoderLayer(M, heads=heads, dropout=dropout)
+        self.layer6 = EncoderLayer(M, heads=heads, dropout=dropout)
         self.norm = Norm(M)
         
         self.name = MODEL_NAME
@@ -151,9 +151,9 @@ class NeuralNet(RootNet):
 
         return x.transpose(1,2).contiguous()*1e-1
     
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
-        if self.VARYING_STEP_SIZE:
-            return optimizer, StepLR(optimizer, step_size=self.step_size, gamma=self.gamma)
-        else:
-            return optimizer
+    # def configure_optimizers(self):
+    #     optimizer = torch.optim.Adam(self.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
+    #     if self.VARYING_STEP_SIZE:
+    #         return optimizer, StepLR(optimizer, step_size=self.step_size, gamma=self.gamma)
+    #     else:
+    #         return optimizer

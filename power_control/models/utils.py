@@ -45,11 +45,7 @@ def deploy(model, test_sample, model_name, device, **kwargs):
         if model_name == 'GFT':
             test_sample = model.sqrt_laplace_matrix @ test_sample
             sc = pickle.load(open(module.HyperParameters.sc_path, 'rb'))
-        # elif model_name == 'ANN':
-        #     test_sample = (test_sample/test_sample.max())
         else:
-            # if not model_name == 'ANN':
-            #     test_sample = torch.log(test_sample)
             test_sample = torch.log(test_sample)
             if not model_name == 'ANN' and not model_name == 'FCN':
                 sc = pickle.load(open(module.HyperParameters.sc_path, 'rb'))
@@ -64,6 +60,7 @@ def deploy(model, test_sample, model_name, device, **kwargs):
             test_sample.requires_grad=False
             test_sample = test_sample.to(device=device, dtype=torch.float32).view(t_shape)
         model.eval()
+        model.to(device=device)
         mus_predicted = model(test_sample)
         return mus_predicted
 

@@ -3,10 +3,11 @@ import argparse
 import os
 from parameters.sim_params import OperatingModes
 
-# default_number_of_samples = 32000
-# testing_number_of_samples = 200
-default_number_of_samples = 2000
-testing_number_of_samples = 20
+default_number_of_samples = 400000
+default_number_of_samples = 100000
+# default_number_of_samples = 1000
+
+testing_number_of_samples = min(int(default_number_of_samples * 0.25), 200)
 
 
 # Defining some useful functions
@@ -37,12 +38,12 @@ def composite(x):
 
 parser = argparse.ArgumentParser(description='Train or test the DNN for CFmMIMO downlink power control descreibed in the paper "CNN-Based Constrained Power Control Algorithm for the Downlink of Cell-Free Massive MIMO".')
 parser.add_argument('-s', '--samples', type=check_positive, help='Number of training samples. Takes a positive Initiger as input. Valid only for TRAINING phase.', default=default_number_of_samples, metavar='numberOfSamples', )
-parser.add_argument('-m', '--mode', choices=list(map(composite, OperatingModes)), help=""" Operating mode. It takes the values from [1-3] to choose one of the following operation modes\n
+parser.add_argument('-m', '--mode', choices=list(map(composite, OperatingModes)), help=""" Operating mode. It takes the values from [1-4] to choose one of the following operation modes\n
     1) TRAINING           : Generates training data and performs training.\n
     2) TESTING            : Generates testing data, performs all the power control algos (trained CNN and reference algos) upon same data, and plots the results.\n
     3) PLOTTING_ONLY      : Plots the results of a test that is already done.\n
     4) ALL                : Train and then Test.\n""", default=OperatingModes.ALL, metavar='operatingMode', )
-parser.add_argument('-sc', '--scenario', choices={"0", "1", "2"}, help='Takes [0-2] as input to pick one of the two scenarios described in the paper.', default="1", metavar='scenario', )
+parser.add_argument('-sc', '--scenario', choices={"0", "1", "2"}, help='Takes [0-2] as input to pick one of the two scenarios described in the paper.', default="0", metavar='scenario', )
 parser.add_argument('-ho', '--host', choices={"0", "1"}, help='Choose 1 for triton and choose 0 for others. CHOICE 1 IS ONLY FOR THE AUTHOR OF THE CODE!', default="0", metavar='isTriton', )
 parser.add_argument('-r', '--retain', choices={"0", "1"}, help='Choose 1 to retain the input data for training and choose 0 for overwritting it.', default="1", metavar='retainData', )
 parser.add_argument('-c', '--clean', action='store_true', help='No arguments for this option. This option clears data logs, results, plots, models, lightning_logs and sc.pkl. Other arguments will be ignored.', )
@@ -78,6 +79,11 @@ if clean:
         print(f'{file} removed')
 
     file = 'TDN_sc.pkl'
+    if os.path.isfile(file):
+        os.remove(file)
+        print(f'{file} removed')
+
+    file = 'ANN_sc.pkl'
     if os.path.isfile(file):
         os.remove(file)
         print(f'{file} removed')
@@ -119,11 +125,14 @@ from utils.utils import handle_deletion_and_creation
 
 cwd = os.getcwd()
 if host == 1:
+    root_base = os.path.join('/tmp', 'hsperfdata_kochark1')
+    handle_deletion_and_creation(root_base)
+
     root = os.path.join('/tmp', 'hsperfdata_kochark1', 'CFmMIMO_PC')
     handle_deletion_and_creation(root)
 
     triton_results_base = os.path.join('/scratch', 'work', 'kochark1', 'CFmMIMO_PC')
-    handle_deletion_and_creation(triton_results_base)
+    handle_deletion_and_creation(triton_results_base, force_retain=True)
 else:
     root = cwd
     triton_results_base = None
@@ -138,15 +147,19 @@ if __name__ == '__main__':
     simulation_parameters = SimulationParameters(root, number_of_samples, operating_mode, scenario, retain, triton_results_base)
     
     if simulation_parameters.scenario==0:
-        coverage_area = 1  # in sq.Km
+        # coverage_area = 0.00015  # in sq.Km
+        # inp_number_of_users = 5
+        # inp_access_point_density = 120000
+        coverage_area = 0.01  # in sq.Km
         inp_number_of_users = 4
-        inp_access_point_density = 20
+        inp_access_point_density = 2000
 
-        models_list = ['FCN', 'ANN',]
+        models_list = ['FCN']
+        # models_list = ['ANN', 'FCN', ]
     elif simulation_parameters.scenario==1:
-        coverage_area = 1  # in sq.Km
+        coverage_area = 0.1  # in sq.Km
         inp_number_of_users = 20
-        inp_access_point_density = 100
+        inp_access_point_density = 2000
         # models_list = ['TDN', 'GFT', , 'FCN', 'ANN']
         models_list = ['FCN', 'ANN',]
     elif simulation_parameters.scenario==2:
@@ -163,7 +176,7 @@ if __name__ == '__main__':
         
         for sample_id in range(number_of_samples):
             data_gen(simulation_parameters, system_parameters, sample_id)
-            if simulation_parameters.operation_mode==OperatingModes.TRAINING and sample_id < 200:
+            if simulation_parameters.operation_mode==OperatingModes.TRAINING and sample_id < simulation_parameters.validation_number_of_data:
                 data_gen(simulation_parameters, system_parameters, sample_id, validation_data=True)
         
         # Compute and display execution time.

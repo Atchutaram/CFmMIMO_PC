@@ -19,11 +19,12 @@ class SimulationParameters:
     def __init__(self, root, number_of_samples, operation_mode, scenario, retain, results_base):
         
         self.number_of_samples = number_of_samples
+        self.validation_number_of_data = int(number_of_samples * 0.25)
         self.operation_mode = operation_mode
         self.model_folder = f'models_sc_{scenario}'
         self.scenario = scenario
         
-        device_text = "cuda" if OperatingModes.TRAINING and torch.cuda.is_available() else "cpu"
+        device_text = "cuda" if (not (self.operation_mode==OperatingModes.TESTING)) and torch.cuda.is_available() else "cpu"
         print(device_text)
         self.device = torch.device(device_text)
         
@@ -68,7 +69,7 @@ class SimulationParameters:
                 handle_deletion_and_creation(self.plot_folder, force_retain= True)
             else:
                 handle_deletion_and_creation(self.pre_training_data_folder)
-                handle_deletion_and_creation(self.validation_data_folder, 200, retain)
+                handle_deletion_and_creation(self.validation_data_folder, self.validation_number_of_data, retain)
 
         else:
             if not os.path.exists(self.results_folder) or len(os.listdir(self.results_folder)) == 0:
