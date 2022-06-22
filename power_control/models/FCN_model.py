@@ -1,11 +1,9 @@
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
 import os
-import pickle
 from sklearn.preprocessing import StandardScaler
 
-from .root_model import Mode, RootDataset, CommonParameters, RootNet
+from .root_model import RootDataset, CommonParameters, RootNet
 from .utils import Norm
 
 
@@ -26,7 +24,6 @@ class BetaDataset(RootDataset):
         beta_original = torch.load(beta_file_path)['betas'].to(dtype=torch.float32)
         
         beta_torch = torch.log(beta_original)
-        # beta_torch = beta_original
         beta_torch = beta_torch.to(dtype=torch.float32, device=self.device)
         beta_torch = beta_torch.reshape(beta_original.shape)
 
@@ -62,29 +59,16 @@ class HyperParameters(CommonParameters):
             return
 
         if cls.scenario == 0:
-            # cls.learning_rate = 1e-5
             cls.batch_size = 8 * 2
         elif cls.scenario == 1:
             cls.batch_size = 8 * 2
         else:
             cls.batch_size = 1
-        
-        
-
-        # train_dataset = cls.InpDataSet(data_path=cls.training_data_path, normalizer=cls.sc, mode=Mode.pre_processing, n_samples=cls.n_samples, device=torch.device('cpu'))
-        # train_loader = DataLoader(dataset=train_dataset, batch_size=1, shuffle=False)
-        
-        # for beta in train_loader:
-        #     with torch.no_grad():
-        #         cls.sc.partial_fit(beta)
-
-        # pickle.dump(cls.sc, open(cls.sc_path, 'wb'))  # saving sc for loading later in testing phase
-        # print(f'{cls.sc_path} dumped!')
     
 
 class NeuralNet(RootNet):
-    def __init__(self, device, system_parameters, interm_folder, grads):
-        super(NeuralNet, self).__init__(device, system_parameters, interm_folder, grads)
+    def __init__(self, device, system_parameters, grads):
+        super(NeuralNet, self).__init__(device, system_parameters, grads)
         
         self.n_samples = HyperParameters.n_samples
         self.num_epochs = HyperParameters.num_epochs
@@ -103,22 +87,6 @@ class NeuralNet(RootNet):
         self.output_shape = HyperParameters.output_shape
         self.InpDataset = HyperParameters.InpDataSet
         self.dropout = HyperParameters.dropout
-        
-        # self.FCN = nn.Sequential(
-        #     Norm(self.input_size),
-        #     nn.Linear(self.input_size, self.hidden_size),
-        #     nn.ReLU(),
-        #     nn.Dropout(p=self.dropout),
-
-        #     # Norm(self.hidden_size),
-        #     # nn.Linear(self.hidden_size, self.hidden_size),
-        #     # nn.ReLU(),
-        #     # nn.Dropout(p=self.dropout),
-
-        #     Norm(self.hidden_size),
-        #     nn.Linear(self.hidden_size, self.output_size),
-        #     nn.Sigmoid(),
-        # )
         
         self.hidden_layer_1 = nn.Sequential(
             Norm(self.input_size),

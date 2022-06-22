@@ -54,9 +54,9 @@ number_of_samples, operating_mode, scenario, host, retain, clean = map(int, (arg
 if clean:
     from sys import exit
     from utils.utils import delete_folder
-    training, testing, lightning, model_0, model_1, model_2, interm = 'data_logs_training', 'data_logs_testing', 'lightning_logs', 'models_sc_0','models_sc_1', 'models_sc_2', 'interm_models'
+    training, testing, lightning, model_0, model_1, model_2 = 'data_logs_training', 'data_logs_testing', 'lightning_logs', 'models_sc_0','models_sc_1', 'models_sc_2'
 
-    delete_folder(training, testing, lightning, model_0, model_1, model_2, interm)
+    delete_folder(training, testing, lightning, model_0, model_1, model_2)
 
     file = 'sc.pkl'
     if os.path.isfile(file):
@@ -88,7 +88,7 @@ if clean:
         os.remove(file)
         print(f'{file} removed')
     
-    print(f"Cleaned '{training}', '{testing}', '{lightning}', '{model_1}', '{model_2}', '{interm}'! ")
+    print(f"Cleaned '{training}', '{testing}', '{lightning}', '{model_1}', '{model_2}'! ")
     exit()
 
 
@@ -108,6 +108,7 @@ retain = (retain==1)  # Translating {0, 1} to {False, True}
 print("""\nWelcome to the CFmMIMO_PC code.
 Try 'python main_learn.py -h' to learn about passing optional command line arguments.\n""")
 
+
 # Importing other useful libraries
 
 from parameters.sim_params import SimulationParameters
@@ -125,6 +126,7 @@ from utils.utils import handle_deletion_and_creation
 
 cwd = os.getcwd()
 if host == 1:
+    # This use case is intended only for the authors of this work.
     root_base = os.path.join('/tmp', 'hsperfdata_kochark1')
     handle_deletion_and_creation(root_base)
 
@@ -133,6 +135,7 @@ if host == 1:
 
     triton_results_base = os.path.join('/scratch', 'work', 'kochark1', 'CFmMIMO_PC')
     handle_deletion_and_creation(triton_results_base, force_retain=True)
+
 else:
     root = cwd
     triton_results_base = None
@@ -153,15 +156,16 @@ if __name__ == '__main__':
         coverage_area = 0.01  # in sq.Km
         inp_number_of_users = 4
         inp_access_point_density = 2000
+        
+        models_list = ['FCN', 'ANN',]
 
-        # models_list = ['FCN',]
-        models_list = ['ANN', 'FCN', ]
     elif simulation_parameters.scenario==1:
         coverage_area = 0.1  # in sq.Km
         inp_number_of_users = 20
         inp_access_point_density = 2000
         # models_list = ['TDN', 'GFT', , 'FCN', 'ANN']
         models_list = ['FCN', 'ANN',]
+        
     elif simulation_parameters.scenario==2:
         coverage_area = 1
         inp_number_of_users = 500

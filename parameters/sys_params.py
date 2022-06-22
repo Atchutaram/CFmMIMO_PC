@@ -75,7 +75,6 @@ class SystemParameters:
         
         self.number_of_antennas = 1  # N
         self.coverage_area = torch.tensor(coverage_area, requires_grad=False, device=simulation_parameters.device, dtype=torch.float32)  # D
-        # self.number_of_users = ceil(number_of_users/4)*4  # K
         self.number_of_users = number_of_users  # K
         self.access_point_density = access_point_density
         self.models_list = models_list
@@ -83,7 +82,6 @@ class SystemParameters:
 
         self.area_width = torch.sqrt(self.coverage_area)  # in Km
         self.area_height = self.area_width
-        # self.number_of_access_points = ceil(access_point_density * self.coverage_area.item()/4)*4  # M
         self.number_of_access_points = ceil(access_point_density * self.coverage_area.item())  # M
 
         torch.manual_seed(seed=0)

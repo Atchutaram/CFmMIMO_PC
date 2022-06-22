@@ -39,10 +39,8 @@ class SimulationParameters:
         self.base_folder_path = os.path.join(self.root_path, self.base_folder)
         if results_base is None:
             self.model_folder_path = os.path.join(self.root_path, self.model_folder)
-            self.interm_folder = os.path.join(self.root_path, 'interm_models')
         else:
             self.model_folder_path = os.path.join(results_base, self.model_folder)
-            self.interm_folder = os.path.join(results_base, 'interm_models')
             
         self.data_folder = os.path.join(self.base_folder_path, "betas")
         self.validation_data_folder = os.path.join(self.base_folder_path, "betas_val")
@@ -53,8 +51,6 @@ class SimulationParameters:
             else:
                 self.results_folder = os.path.join(results_base, "results")
                 self.plot_folder = os.path.join(results_base, "plots")
-        else:
-            self.pre_training_data_folder = os.path.join(self.base_folder_path, "mus")
         
 
         if not self.operation_mode == OperatingModes.PLOTTING_ONLY:
@@ -68,7 +64,6 @@ class SimulationParameters:
                 handle_deletion_and_creation(self.results_folder)
                 handle_deletion_and_creation(self.plot_folder, force_retain= True)
             else:
-                handle_deletion_and_creation(self.pre_training_data_folder)
                 handle_deletion_and_creation(self.validation_data_folder, self.validation_number_of_data, retain)
 
         else:
@@ -86,9 +81,6 @@ class SimulationParameters:
                 sys.exit()
             os.makedirs(self.model_folder_path)
         
-        if not os.path.exists(self.interm_folder):
-            if self.operation_mode == OperatingModes.TRAINING:
-                os.makedirs(self.interm_folder)
     
     def handle_model_subfolders(self, models_list):
         self.model_subfolder_path_dict = {}
@@ -102,11 +94,4 @@ class SimulationParameters:
                     print(subfolder_path)
                     print('Train the neural network before testing!')
                     sys.exit()
-                os.makedirs(subfolder_path)
-            
-            
-            subfolder_path = os.path.join(self.interm_folder, model_name)
-            self.interm_subfolder_path_dict[model_name] = subfolder_path
-            if not os.path.exists(subfolder_path):
-                if self.operation_mode == OperatingModes.TRAINING:
-                    os.makedirs(subfolder_path)
+                os.makedirs(subfolder_path)         

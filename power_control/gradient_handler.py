@@ -1,5 +1,4 @@
 import torch
-import os
 
 from .utils import compute_vmat, compute_smooth_min
 
@@ -71,8 +70,6 @@ def grads(betas_in, mus_in, eta, slack_variable, device, system_parameters):
         if eta > epsilon:
             mus_temp = -eta * torch.unsqueeze((mus_in * temp).sum(dim=1), 1)  # b X 1 X K
             grad_wrt_slack = - eta * slack_variable * temp.sum(dim=1)  # b X 1
-
-            # print(torch.linalg.norm((mus_in * temp).sum(dim=1)).item(), torch.linalg.norm(mus_out).item())
             mus_out += mus_temp  # results in b X M X K
         else:
             grad_wrt_slack = 0 * slack_variable * temp.sum(dim=1)  # b X 1

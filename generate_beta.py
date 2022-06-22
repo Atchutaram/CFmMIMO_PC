@@ -4,7 +4,7 @@ import torch
 import os
 
 
-NoSeedFlag = False  # False ensures testing data is different from training data.
+NoSeedFlag = False  # False ensures testing data is different from training data. Do not use True unless you want to test it.
 
 def get_user_config(area_width, area_height, number_of_users, device):
     area_dims = torch.tensor([area_width, area_height], device=device, requires_grad=False, dtype=torch.float32)

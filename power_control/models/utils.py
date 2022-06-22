@@ -22,17 +22,6 @@ def initialize_weights(m):
     elif isinstance(m, nn.Linear):
         nn.init.kaiming_uniform_(m.weight.data)
         nn.init.constant_(m.bias.data, 0)
-    # elif isinstance(m, nn.Module):
-    #     print(m)
-    # elif isinstance(m, Filter1):
-    #     nn.init.kaiming_uniform_(m.weights.data, 1)
-    #     nn.init.constant_(m.bias.data, 0)
-    # elif isinstance(m, Filter2):
-    #     nn.init.kaiming_uniform_(m.weights.data, 1)
-    #     nn.init.constant_(m.bias.data, 0)
-    # elif isinstance(m, Filter3):
-    #     nn.init.kaiming_uniform_(m.weights.data, 1)
-    #     nn.init.constant_(m.bias.data, 0)
 
 
 def deploy(model, test_sample, model_name, device, **kwargs):
@@ -70,11 +59,11 @@ def initialize_hyper_params(model_name, simulation_parameters, system_parameters
     
     module.HyperParameters.intialize(simulation_parameters, system_parameters, is_test_mode=is_test_mode)
 
-def load_the_latest_model_and_params_if_exists(model_name, model_folder, interm_folder, system_parameters, grads, device, is_testing=False):  
+def load_the_latest_model_and_params_if_exists(model_name, model_folder, system_parameters, grads, device, is_testing=False):  
     import_path = find_import_path(model_name)
     module = importlib.import_module(import_path, ".")  # imports the scenarios
         
-    model = module.NeuralNet(device, system_parameters, interm_folder, grads)
+    model = module.NeuralNet(device, system_parameters, grads)
     model.apply(initialize_weights)
     model_file = find_the_latest_file(model_folder)
     
@@ -150,7 +139,6 @@ class MultiHeadAttention(nn.Module):
         query = self.q_linear(x).view(B, -1, self.h, self.d_k)
         key = self.k_linear(x).view(B, -1, self.h, self.d_k)
         value = self.v_linear(x).view(B, -1, self.h, self.d_k)
-        # value = x.view(B, -1, self.h, self.d_k)
         
         # transpose to get dimensions B x h x K x d_k
        
@@ -192,14 +180,10 @@ class Norm(nn.Module):
         # create two learnable parameters to calibrate normalisation
         self.alpha = nn.Parameter(torch.ones(self.size))
         self.bias = nn.Parameter(torch.zeros(self.size))
-        # self.alpha = nn.Parameter(torch.tensor([1.0]))
-        # self.bias = nn.Parameter(torch.tensor([0.0]))
         self.eps = eps
     
     def forward(self, x):
-        # norm = self.alpha * (x - x.mean()) / (x.std() + self.eps) + self.bias
         norm = self.alpha * (x - x.mean(dim=[-2, -1], keepdim=True)) / (x.std(dim=[-2, -1], keepdim=True) + self.eps) + self.bias
-        # norm = self.alpha * (x - x.mean(dim=-1, keepdim=True)) / (x.std(dim=-1, keepdim=True) + self.eps) + self.bias
         return norm
 
 class EncoderLayer(nn.Module):

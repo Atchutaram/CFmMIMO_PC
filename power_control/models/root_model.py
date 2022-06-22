@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import os
 import datetime
-from tqdm import tqdm
 from enum import Enum, auto
 from torch.utils.data import Dataset
 from torch.optim.lr_scheduler import MultiStepLR, StepLR
@@ -67,24 +66,21 @@ class CommonParameters:
         cls.n_samples = simulation_parameters.number_of_samples
         cls.training_data_path = simulation_parameters.data_folder
         cls.validation_data_path = simulation_parameters.validation_data_folder
-        cls.pre_training_data_path = '' if is_testing else simulation_parameters.pre_training_data_folder
         cls.scenario = simulation_parameters.scenario
         
 
 
 class RootNet(pl.LightningModule):
-    def __init__(self, device, system_parameters, interm_folder, grads):
+    def __init__(self, device, system_parameters, grads):
         super(RootNet, self).__init__()
         
         self.relu = nn.ReLU()
         torch.seed()
         self.slack_variable_in = torch.rand((1,), requires_grad=True, dtype=torch.float32, device = device)
         self.slack_variable = torch.zeros((1,), requires_grad=True, dtype=torch.float32, device = device)
-        # self.device = device
         self.system_parameters = system_parameters
         self.to(self.device)
 
-        self.interm_folder = interm_folder
         self.grads = grads
         self.InpDataset = CommonParameters.InpDataSet
         self.name = None
@@ -126,12 +122,7 @@ class RootNet(pl.LightningModule):
             # if self.trainer.is_last_batch and self.trainer.current_epoch < (3*self.step_size+3):
             if self.trainer.is_last_batch:
                 sch.step()
-        
-
-        # if (epoch_id+1) % 10 == 0:
-        #     interm_model_full_path = os.path.join(self.interm_folder, f'model_{epoch_id}.pth')
-        #     torch.save(self.state_dict(), interm_model_full_path)
-        
+                
         return {"loss": loss, 'log': tensorboard_logs}
     
 
@@ -157,11 +148,6 @@ class RootNet(pl.LightningModule):
 
         return {"val_loss": loss}
         
-    # def validation_epoch_end(self, outputs):
-    #     # outputs = list of dictionaries
-    #     avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-    #     tensorboard_logs = {'avg_val_loss': avg_loss}
-    #     return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
     def backward(self, loss, *args, **kwargs):
         mus=loss
@@ -190,27 +176,6 @@ class RootNet(pl.LightningModule):
         val_dataset = self.InpDataset(data_path=self.val_data_path, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples, device=self.device)
         val_loader = DataLoader(dataset=val_dataset, batch_size=self.batch_size, shuffle=False)
         return val_loader
-
-
-    # def training_loop(self):
-    #     self.train()
-    #     train_loader = self.train_dataloader()
-        
-        
-    #     if self.VARYING_STEP_SIZE:
-    #         self.opt, self.scheduler = self.configure_optimizers()
-    #     else:
-    #         self.opt = self.configure_optimizers()
-        
-    #     for epoch_id in tqdm(range(self.num_epochs)):
-    #         for bacth in train_loader:
-    #             utility = self.training_step(bacth, epoch_id)
-            
-    #         if self.VARYING_STEP_SIZE:
-    #             self.scheduler.step()
-                
-    #         if epoch_id % 10 == 0:
-    #             tqdm.write(f'\n{self.name} Utility: {-utility.min().item()}')
     
     
     def save(self):
@@ -223,6 +188,3 @@ class RootNet(pl.LightningModule):
         
         print(model_path)
         print(f'{self.name} training Done!')
-    
-    # def pretrain(self):
-    #     pass

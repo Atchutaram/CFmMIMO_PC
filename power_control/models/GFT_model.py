@@ -72,8 +72,8 @@ class HyperParameters(CommonParameters):
     
 
 class NeuralNet(RootNet):
-    def __init__(self, device, system_parameters, interm_folder, grads):
-        super(NeuralNet, self).__init__(device, system_parameters, interm_folder, grads)
+    def __init__(self, device, system_parameters, grads):
+        super(NeuralNet, self).__init__(device, system_parameters, grads)
         
         self.n_samples = HyperParameters.n_samples
         self.num_epochs = HyperParameters.num_epochs
