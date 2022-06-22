@@ -5,7 +5,7 @@ from parameters.sim_params import OperatingModes
 
 default_number_of_samples = 400000
 default_number_of_samples = 100000
-# default_number_of_samples = 1000
+default_number_of_samples = 1000
 
 testing_number_of_samples = min(int(default_number_of_samples * 0.25), 200)
 
@@ -154,8 +154,8 @@ if __name__ == '__main__':
         inp_number_of_users = 4
         inp_access_point_density = 2000
 
-        models_list = ['FCN']
-        # models_list = ['ANN', 'FCN', ]
+        # models_list = ['FCN',]
+        models_list = ['ANN', 'FCN', ]
     elif simulation_parameters.scenario==1:
         coverage_area = 0.1  # in sq.Km
         inp_number_of_users = 20

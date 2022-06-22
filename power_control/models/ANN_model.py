@@ -114,7 +114,7 @@ class NeuralNet(RootNet):
         M = HyperParameters.M
         
         
-        dropout = 0.2
+        dropout = 0.5
         heads = 5
 
         # self.pe = PositionalEncoder(M, max_seq_len = K)
@@ -140,11 +140,11 @@ class NeuralNet(RootNet):
         
         x = self.layer3(x, mask=self.system_parameters.phi_cross_mat**2)
         
-        # x = self.layer4(x, mask=self.system_parameters.phi_cross_mat**2)
+        x = self.layer4(x, mask=self.system_parameters.phi_cross_mat**2)
         
-        # x = self.layer5(x, mask=self.system_parameters.phi_cross_mat**2)
+        x = self.layer5(x, mask=self.system_parameters.phi_cross_mat**2)
         
-        # x = self.layer6(x, mask=self.system_parameters.phi_cross_mat**2)
+        x = self.layer6(x, mask=self.system_parameters.phi_cross_mat**2)
 
         x = self.norm(x)
         x = torch.sigmoid(x)

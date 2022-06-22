@@ -46,13 +46,14 @@ class HyperParameters(CommonParameters):
     def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
         
         cls.pre_int(simulation_parameters, system_parameters, is_test_mode)
-        cls.dropout = 0.2
+        cls.dropout = 0.5
         cls.input_size = cls.M * cls.K
         cls.output_size = cls.M * cls.K
-        if cls.dropout < 1e-5:
-            cls.hidden_size = cls.M * cls.K * 4
+        MK = 1 * cls.M * cls.K
+        if 0 <= cls.dropout < 1:
+            cls.hidden_size = int((1/(1-cls.dropout))*MK)
         else:
-            cls.hidden_size = int((1/cls.dropout)*cls.M * cls.K) * 4
+            cls.hidden_size = int(MK)
 
         cls.output_shape = (-1, cls.M, cls.K)
         
@@ -103,32 +104,39 @@ class NeuralNet(RootNet):
         self.InpDataset = HyperParameters.InpDataSet
         self.dropout = HyperParameters.dropout
         
-        self.FCN = nn.Sequential(
+        # self.FCN = nn.Sequential(
+        #     Norm(self.input_size),
+        #     nn.Linear(self.input_size, self.hidden_size),
+        #     nn.ReLU(),
+        #     nn.Dropout(p=self.dropout),
+
+        #     # Norm(self.hidden_size),
+        #     # nn.Linear(self.hidden_size, self.hidden_size),
+        #     # nn.ReLU(),
+        #     # nn.Dropout(p=self.dropout),
+
+        #     Norm(self.hidden_size),
+        #     nn.Linear(self.hidden_size, self.output_size),
+        #     nn.Sigmoid(),
+        # )
+        
+        self.hidden_layer_1 = nn.Sequential(
             Norm(self.input_size),
             nn.Linear(self.input_size, self.hidden_size),
             nn.ReLU(),
+        )
+        
+        
+        self.hidden_layer_2 = nn.Sequential(
+
+            Norm(self.hidden_size),
+            nn.Linear(self.hidden_size, self.hidden_size),
+            nn.ReLU(),
             nn.Dropout(p=self.dropout),
-
-            # Norm(self.hidden_size),
-            # nn.Linear(self.hidden_size, self.hidden_size),
-            # nn.ReLU(),
-            # nn.Dropout(p=self.dropout),
-            
-            # Norm(self.hidden_size),
-            # nn.Linear(self.hidden_size, self.hidden_size),
-            # nn.ReLU(),
-            # nn.Dropout(p=self.dropout),
-            
-            # Norm(self.hidden_size),
-            # nn.Linear(self.hidden_size, self.hidden_size),
-            # nn.ReLU(),
-            # nn.Dropout(p=self.dropout),
-            
-            # Norm(self.hidden_size),
-            # nn.Linear(self.hidden_size, self.hidden_size),
-            # nn.ReLU(),
-            # nn.Dropout(p=self.dropout),
-
+        )
+        
+        
+        self.output_layer = nn.Sequential(
             Norm(self.hidden_size),
             nn.Linear(self.hidden_size, self.output_size),
             nn.Sigmoid(),
@@ -139,6 +147,8 @@ class NeuralNet(RootNet):
 
 
     def forward(self, x):
-        output = self.FCN(x.view(-1, 1, self.input_size))
+        output = self.hidden_layer_1(x.view(-1, 1, self.input_size))
+        output = self.hidden_layer_2(output)
+        output = self.output_layer(output)
         output = output.view(self.output_shape)*1e-1
         return output

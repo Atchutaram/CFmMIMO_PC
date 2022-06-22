@@ -171,7 +171,7 @@ class FeedForward(nn.Module):
 
     def __init__(self, M, dropout = 0.1):
         super().__init__() 
-        d_mid = 4 * M
+        d_mid = int(4 * M / (1-dropout))
 
         self.linear_1 = nn.Linear(M, d_mid)
         self.dropout = nn.Dropout(dropout)
@@ -185,10 +185,10 @@ class FeedForward(nn.Module):
 
 class Norm(nn.Module):
     
-    def __init__(self, M, eps = 1e-6):
+    def __init__(self, size, eps = 1e-6):
         super().__init__()
     
-        self.size = M
+        self.size = size
         # create two learnable parameters to calibrate normalisation
         self.alpha = nn.Parameter(torch.ones(self.size))
         self.bias = nn.Parameter(torch.zeros(self.size))
@@ -209,7 +209,7 @@ class EncoderLayer(nn.Module):
         self.norm_1 = Norm(M)
         self.norm_2 = Norm(M)
         self.attn = MultiHeadAttention(heads, M, dropout)
-        self.ff = FeedForward(M)
+        self.ff = FeedForward(M, dropout)
         self.dropout_1 = nn.Dropout(dropout)
         self.dropout_2 = nn.Dropout(dropout)
         
