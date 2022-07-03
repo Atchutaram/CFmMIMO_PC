@@ -137,18 +137,25 @@ def ref_algo_two(betas, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device):
     return mus_vec_new, max(u_z, u_v)
 
 def run_power_control_algos(simulation_parameters, system_parameters, algo_list, models, sample_id):
-    device = simulation_parameters.device
+    device = torch.device('cpu')
 
     file_path_and_name = os.path.join(simulation_parameters.data_folder, f'betas_sample{sample_id}.pt')
-    betas = torch.load(file_path_and_name)['betas'].to(dtype=torch.float32, device=device)
+    m = torch.load(file_path_and_name)
+
+    betas = m['betas'].to(dtype=torch.float32, device=device)
     betas = torch.unsqueeze(betas, 0)
+
+    pilot_sequence = m['pilot_sequence']
 
     N = system_parameters.number_of_antennas
     zeta_d = system_parameters.zeta_d
     zeta_p = system_parameters.zeta_p
     T_p = system_parameters.T_p
     T_c = system_parameters.T_c
-    phi_cross_mat = system_parameters.phi_cross_mat
+
+    phi = torch.index_select(system_parameters.phi_orth, 0, pilot_sequence)
+    phi_cross_mat = torch.abs(phi.conj() @ phi.T).to(dtype=torch.float32, device=device)
+    phi_cross_mat = torch.unsqueeze(phi_cross_mat**2, dim=0)
     tau = system_parameters.tau
 
     v_mat = compute_vmat(betas, zeta_p, T_p, phi_cross_mat)
@@ -194,7 +201,7 @@ def run_power_control_algos(simulation_parameters, system_parameters, algo_list,
         
 
         time_then = time.perf_counter()
-        mus = deploy(models[model_name], betas, model_name, device)
+        mus = deploy(models[model_name], betas, phi_cross_mat, model_name, device)
         time_now = time.perf_counter()
         latency[algo_name] = round(time_now - time_then, 6)
 
@@ -207,7 +214,7 @@ def run_power_control_algos(simulation_parameters, system_parameters, algo_list,
         
 
         time_then = time.perf_counter()
-        mus = deploy(models[model_name], betas, model_name, device)
+        mus = deploy(models[model_name], betas, phi_cross_mat, model_name, device)
         time_now = time.perf_counter()
         latency[algo_name] = round(time_now - time_then, 6)
 
@@ -219,7 +226,7 @@ def run_power_control_algos(simulation_parameters, system_parameters, algo_list,
         
 
         time_then = time.perf_counter()
-        mus = deploy(models[model_name], betas, model_name, device)
+        mus = deploy(models[model_name], betas, phi_cross_mat, model_name, device)
         time_now = time.perf_counter()
         latency[algo_name] = round(time_now - time_then, 6)
 
@@ -231,7 +238,7 @@ def run_power_control_algos(simulation_parameters, system_parameters, algo_list,
         
 
         time_then = time.perf_counter()
-        mus = deploy(models[model_name], betas, model_name, device)
+        mus = deploy(models[model_name], betas, phi_cross_mat, model_name, device)
         time_now = time.perf_counter()
         latency[algo_name] = round(time_now - time_then, 6)
 
@@ -243,7 +250,7 @@ def run_power_control_algos(simulation_parameters, system_parameters, algo_list,
         
 
         time_then = time.perf_counter()
-        mus = deploy(models[model_name], betas, model_name, device, system_parameters=system_parameters)
+        mus = deploy(models[model_name], betas, phi_cross_mat, model_name, device)
         time_now = time.perf_counter()
         latency[algo_name] = round(time_now - time_then, 6)
 
@@ -260,21 +267,17 @@ def load_latency(result_path):
 
 def setup_and_load_deep_learning_models(models_to_run, simulation_parameters, system_parameters):
     model_folder_dict = simulation_parameters.model_subfolder_path_dict
-    interm_folder_dict = simulation_parameters.interm_subfolder_path_dict
-    device = simulation_parameters.device
     
-    number_of_access_points = system_parameters.number_of_access_points
-    number_of_users = system_parameters.number_of_users
-    scenario = simulation_parameters.scenario
     
     models = {}
     for model_name in models_to_run:
         initialize_hyper_params(model_name, simulation_parameters, system_parameters, is_test_mode=True)
-        models[model_name] = load_the_latest_model_and_params_if_exists(model_name, model_folder_dict[model_name], interm_folder_dict[model_name], system_parameters, grads, device, is_testing=True)
+        models[model_name] = load_the_latest_model_and_params_if_exists(model_name, model_folder_dict[model_name], system_parameters, grads, is_testing=True)
     
     return models
 
 def test_and_plot(simulation_parameters, system_parameters, plotting_only):
+    device = torch.device('cpu')
     algo_list = ['epa', 'ref_algo_one', 'ref_algo_two', ]
     models_list = system_parameters.models_list  # deep learning models
 
@@ -291,7 +294,7 @@ def test_and_plot(simulation_parameters, system_parameters, plotting_only):
     if plotting_only:
         avg_latency = load_latency(results_path)
     else:
-        CONST = torch.log2(torch.exp(torch.scalar_tensor(1))).to(device=simulation_parameters.device)
+        CONST = torch.log2(torch.exp(torch.scalar_tensor(1))).to(device=device)
         models = setup_and_load_deep_learning_models(models_to_run, simulation_parameters, system_parameters)
         number_of_samples = simulation_parameters.number_of_samples
 

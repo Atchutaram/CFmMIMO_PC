@@ -7,10 +7,22 @@ default_number_of_samples = 400000
 default_number_of_samples = 100000
 default_number_of_samples = 1000
 
-testing_number_of_samples = min(int(default_number_of_samples * 0.25), 200)
+testing_number_of_samples = min(int(default_number_of_samples * 0.25), 1000)
 
 
 # Defining some useful functions
+
+def check_non_negative(value):
+    """
+    Takes a single parameter as input
+    Converts it to an integer if it is a non-negative number else raises an exception.
+
+    """
+
+    ivalue = int(value)
+    if ivalue < 0:
+        raise argparse.ArgumentTypeError(f"{value} is an invalid positive int value")
+    return ivalue
 
 def check_positive(value):
     """
@@ -37,6 +49,7 @@ def composite(x):
 # Handling comand-line arguments
 
 parser = argparse.ArgumentParser(description='Train or test the DNN for CFmMIMO downlink power control descreibed in the paper "CNN-Based Constrained Power Control Algorithm for the Downlink of Cell-Free Massive MIMO".')
+parser.add_argument('-id', '--simulationID', type=check_non_negative, help='All the logs and results folders use this id', default="0", metavar='simID', )
 parser.add_argument('-s', '--samples', type=check_positive, help='Number of training samples. Takes a positive Initiger as input. Valid only for TRAINING phase.', default=default_number_of_samples, metavar='numberOfSamples', )
 parser.add_argument('-m', '--mode', choices=list(map(composite, OperatingModes)), help=""" Operating mode. It takes the values from [1-4] to choose one of the following operation modes\n
     1) TRAINING           : Generates training data and performs training.\n
@@ -44,19 +57,26 @@ parser.add_argument('-m', '--mode', choices=list(map(composite, OperatingModes))
     3) PLOTTING_ONLY      : Plots the results of a test that is already done.\n
     4) ALL                : Train and then Test.\n""", default=OperatingModes.ALL, metavar='operatingMode', )
 parser.add_argument('-sc', '--scenario', choices={"0", "1", "2"}, help='Takes [0-2] as input to pick one of the two scenarios described in the paper.', default="0", metavar='scenario', )
+parser.add_argument('-o', '--orthogonality', choices={"0", "1"}, help='Choose 1 for orthogonal pilot and choose 0 for others.', default="0", metavar='orthogonality', )
+parser.add_argument('-v', '--varK', choices={"0", "1"}, help='Choose 1 for variable K and choose 0 for others.', default="0", metavar='varK', )
 parser.add_argument('-ho', '--host', choices={"0", "1"}, help='Choose 1 for triton and choose 0 for others. CHOICE 1 IS ONLY FOR THE AUTHOR OF THE CODE!', default="0", metavar='isTriton', )
 parser.add_argument('-r', '--retain', choices={"0", "1"}, help='Choose 1 to retain the input data for training and choose 0 for overwritting it.', default="1", metavar='retainData', )
-parser.add_argument('-c', '--clean', action='store_true', help='No arguments for this option. This option clears data logs, results, plots, models, lightning_logs and sc.pkl. Other arguments will be ignored.', )
+parser.add_argument('-c', '--clean', action='store_true', help='No arguments for this option. This option clears data logs, results, plots, models, lightning_logs and sc.pkl. Other options will be ignored.', )
 
 args = parser.parse_args()
-number_of_samples, operating_mode, scenario, host, retain, clean = map(int, (args.samples, args.mode, args.scenario, args.host, args.retain, args.clean ))
+simulationID, number_of_samples, operating_mode, scenario, orthogonality_flag, varying_K_flag, host, retain, clean = map(int, (args.simulationID, args.samples, args.mode, args.scenario, args.orthogonality, args.varK, args.host, args.retain, args.clean ))
 
 if clean:
+    import glob, shutil
     from sys import exit
     from utils.utils import delete_folder
-    training, testing, lightning, model_0, model_1, model_2 = 'data_logs_training', 'data_logs_testing', 'lightning_logs', 'models_sc_0','models_sc_1', 'models_sc_2'
+    training, testing, lightning = 'data_logs_training', 'data_logs_testing', 'lightning_logs'
 
-    delete_folder(training, testing, lightning, model_0, model_1, model_2)
+    delete_folder(training, testing, lightning)
+    
+    dirs = glob.glob("simID*/")
+    for dir in dirs:
+        shutil.rmtree(dir, ignore_errors=False, onerror=None)
 
     file = 'sc.pkl'
     if os.path.isfile(file):
@@ -88,7 +108,7 @@ if clean:
         os.remove(file)
         print(f'{file} removed')
     
-    print(f"Cleaned '{training}', '{testing}', '{lightning}', '{model_1}', '{model_2}'! ")
+    print(f"Cleaned all! ")
     exit()
 
 
@@ -103,6 +123,13 @@ if not operating_mode == OperatingModes.TRAINING:
 
 
 retain = (retain==1)  # Translating {0, 1} to {False, True}
+orthogonality_flag = (orthogonality_flag == 1)
+varying_K_flag = (varying_K_flag == 1)
+
+
+if orthogonality_flag and scenario > 1:
+    print('Orthogonality flag cannot be True for this scenarios! So, it is set to False.')
+    orthogonality_flag = False
 
 
 print("""\nWelcome to the CFmMIMO_PC code.
@@ -114,7 +141,7 @@ Try 'python main_learn.py -h' to learn about passing optional command line argum
 from parameters.sim_params import SimulationParameters
 from parameters.sys_params import SystemParameters
 
-from generate_beta import data_gen
+from generate_beta_and_pilots import data_gen
 
 from power_control.learning import train
 from power_control.testing import test_and_plot
@@ -147,7 +174,7 @@ if __name__ == '__main__':
     # Time stamp recording
     start = time.perf_counter()
     
-    simulation_parameters = SimulationParameters(root, number_of_samples, operating_mode, scenario, retain, triton_results_base)
+    simulation_parameters = SimulationParameters(root, simulationID, number_of_samples, operating_mode, scenario, retain, triton_results_base, orthogonality_flag, varying_K_flag)
     
     if simulation_parameters.scenario==0:
         # coverage_area = 0.00015  # in sq.Km
@@ -203,7 +230,7 @@ if __name__ == '__main__':
             operating_mode = OperatingModes.TESTING
             number_of_samples = testing_number_of_samples
             
-            simulation_parameters = SimulationParameters(root, number_of_samples, operating_mode, scenario, retain, triton_results_base)
+            simulation_parameters = SimulationParameters(root, simulationID, number_of_samples, operating_mode, scenario, retain, triton_results_base, orthogonality_flag, varying_K_flag)
             system_parameters = SystemParameters(simulation_parameters, coverage_area, inp_number_of_users, inp_access_point_density, models_list)
             
             time_then = time.perf_counter()

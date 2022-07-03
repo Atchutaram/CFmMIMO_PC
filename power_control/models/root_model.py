@@ -16,18 +16,23 @@ class Mode(Enum):
 
 
 class RootDataset(Dataset):
-    def __init__(self, data_path, normalizer, mode, n_samples, device):
+    def __init__(self, data_path, phi_orth, normalizer, mode, n_samples):
         self.path = data_path
         _, _, files = next(os.walk(self.path))
         self.n_samples = min(len(list(filter(lambda k: 'betas' in k, files))), n_samples)
         self.sc = normalizer
         self.mode = mode
-        self.device = device
+        self.phi_orth = phi_orth
         
     def __getitem__(self, index):
         beta_file_name = f'betas_sample{index}.pt'
         beta_file_path = os.path.join(self.path, beta_file_name)
-        beta_original = torch.load(beta_file_path)['betas'].to(dtype=torch.float32)
+        m = torch.load(beta_file_path)
+        beta_original = m['betas'].to(dtype=torch.float32)
+        pilot_sequence = m['pilot_sequence'].to(dtype=torch.int32)
+
+        phi = torch.index_select(self.phi_orth, 0, pilot_sequence)
+        phi_cross_mat = torch.abs(phi.conj() @ phi.T)
         if self.mode == Mode.pre_processing:
             beta = torch.log(beta_original.reshape((-1,)))
             return beta
@@ -35,10 +40,10 @@ class RootDataset(Dataset):
         beta_torch = torch.log(beta_original)
         beta_torch = beta_torch.reshape((1, -1,))
         beta_torch = self.sc.transform(beta_torch)[0]
-        beta_torch = torch.from_numpy(beta_torch).to(dtype=torch.float32, device=self.device)
+        beta_torch = torch.from_numpy(beta_torch).to(dtype=torch.float32)
         beta_torch = beta_torch.reshape(beta_original.shape)
 
-        return beta_torch, beta_original.to(device=self.device)
+        return phi_cross_mat, beta_torch, beta_original
 
     def __len__(self):
         return self.n_samples
@@ -58,7 +63,7 @@ class CommonParameters:
     InpDataSet = RootDataset
 
     @classmethod
-    def pre_int(cls, simulation_parameters, system_parameters, is_testing):
+    def pre_int(cls, simulation_parameters, system_parameters):
         cls.M = system_parameters.number_of_access_points
         cls.K = system_parameters.number_of_users
 
@@ -71,15 +76,22 @@ class CommonParameters:
 
 
 class RootNet(pl.LightningModule):
-    def __init__(self, device, system_parameters, grads):
+    def __init__(self, system_parameters, grads):
         super(RootNet, self).__init__()
         
         self.relu = nn.ReLU()
         torch.seed()
-        self.slack_variable_in = torch.rand((1,), requires_grad=True, dtype=torch.float32, device = device)
-        self.slack_variable = torch.zeros((1,), requires_grad=True, dtype=torch.float32, device = device)
+        # self.slack_variable_in = torch.rand((1,), requires_grad=True, dtype=torch.float32)
+        # self.slack_variable = torch.zeros((1,), requires_grad=True, dtype=torch.float32)
+        self.slack_variable_in = nn.Parameter(torch.rand((1,), dtype=torch.float32))
+        # self.slack_variable = nn.Parameter(torch.zeros((1,), dtype=torch.float32))
+        self.slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
+        
+        # print(type(self.slack_variable), type(self.slack_variable_in))
+        # from sys import exit
+        # exit()
+        
         self.system_parameters = system_parameters
-        self.to(self.device)
 
         self.grads = grads
         self.InpDataset = CommonParameters.InpDataSet
@@ -92,14 +104,15 @@ class RootNet(pl.LightningModule):
     
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
-        beta_torch, beta_original = batch
+        phi_cross_mat, beta_torch, beta_original = batch
+        self.slack_variable = self.slack_variable.to(self.device)
 
         opt.zero_grad()
         self.slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
-        mus = self(beta_torch)
+        mus = self([beta_torch, phi_cross_mat])
 
         with torch.no_grad():
-            [mus_grads, grad_wrt_slack, utility] = self.grads(beta_original, mus, self.eta, self.slack_variable, self.device, self.system_parameters)
+            [mus_grads, grad_wrt_slack, utility] = self.grads(beta_original, mus, self.eta, self.slack_variable, self.device, self.system_parameters, phi_cross_mat)
         
         
         self.manual_backward(mus, None, gradient=[mus_grads, grad_wrt_slack])
@@ -127,11 +140,15 @@ class RootNet(pl.LightningModule):
     
 
     def validation_step(self, batch, batch_idx):
-        beta_torch, beta_original = batch
+        phi_cross_mat, beta_torch, beta_original = batch
 
-        mus = self(beta_torch)
+        mus = self([beta_torch, phi_cross_mat])
+        self.slack_variable = self.slack_variable.to(self.device)
+        # import sys
+        # print(mus.shape, beta_original.shape, beta_torch.shape, phi_cross_mat.shape)
+        # sys.exit()
 
-        [_, _, utility] = self.grads(beta_original, mus, self.eta, self.slack_variable, self.device, self.system_parameters) # Replace with direct utility computation
+        [_, _, utility] = self.grads(beta_original, mus, self.eta, self.slack_variable, self.device, self.system_parameters, phi_cross_mat) # Replace with direct utility computation
         
         
         
@@ -168,12 +185,12 @@ class RootNet(pl.LightningModule):
             return optimizer
     
     def train_dataloader(self):
-        train_dataset = self.InpDataset(data_path=self.data_path, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples, device=self.device)
+        train_dataset = self.InpDataset(data_path=self.data_path, phi_orth=self.system_parameters.phi_orth, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples)
         train_loader = DataLoader(dataset=train_dataset, batch_size=self.batch_size, shuffle=True)
         return train_loader
 
     def val_dataloader(self):
-        val_dataset = self.InpDataset(data_path=self.val_data_path, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples, device=self.device)
+        val_dataset = self.InpDataset(data_path=self.val_data_path, phi_orth=self.system_parameters.phi_orth, normalizer=self.normalizer, mode=Mode.training, n_samples=self.n_samples)
         val_loader = DataLoader(dataset=val_dataset, batch_size=self.batch_size, shuffle=False)
         return val_loader
     

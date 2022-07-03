@@ -24,7 +24,7 @@ def initialize_weights(m):
         nn.init.constant_(m.bias.data, 0)
 
 
-def deploy(model, test_sample, model_name, device, **kwargs):
+def deploy(model, test_sample, phi_cross_mat, model_name, device):
     import_path = find_import_path(model_name)
     module = importlib.import_module(import_path, ".")  # imports the scenarios
     
@@ -50,7 +50,7 @@ def deploy(model, test_sample, model_name, device, **kwargs):
             test_sample = test_sample.to(device=device, dtype=torch.float32).view(t_shape)
         model.eval()
         model.to(device=device)
-        mus_predicted = model(test_sample)
+        mus_predicted = model([test_sample, phi_cross_mat.to(device=device, dtype=torch.float32)])
         return mus_predicted
 
 def initialize_hyper_params(model_name, simulation_parameters, system_parameters, is_test_mode=False):
@@ -59,11 +59,11 @@ def initialize_hyper_params(model_name, simulation_parameters, system_parameters
     
     module.HyperParameters.intialize(simulation_parameters, system_parameters, is_test_mode=is_test_mode)
 
-def load_the_latest_model_and_params_if_exists(model_name, model_folder, system_parameters, grads, device, is_testing=False):  
+def load_the_latest_model_and_params_if_exists(model_name, model_folder, system_parameters, grads, is_testing=False):  
     import_path = find_import_path(model_name)
     module = importlib.import_module(import_path, ".")  # imports the scenarios
         
-    model = module.NeuralNet(device, system_parameters, grads)
+    model = module.NeuralNet(system_parameters, grads)
     model.apply(initialize_weights)
     model_file = find_the_latest_file(model_folder)
     
@@ -76,7 +76,6 @@ def load_the_latest_model_and_params_if_exists(model_name, model_folder, system_
         exit()
     
     if not is_testing:
-        model.to(device)
         model.set_folder(model_folder)
     
     print(model_file)

@@ -16,17 +16,18 @@ class OperatingModes(IntEnum):
 
 
 class SimulationParameters:
-    def __init__(self, root, number_of_samples, operation_mode, scenario, retain, results_base):
+    def __init__(self, root, simulationID, number_of_samples, operation_mode, scenario, retain, results_base, orthogonality_flag, varying_K_flag):
         
         self.number_of_samples = number_of_samples
         self.validation_number_of_data = int(number_of_samples * 0.25)
         self.operation_mode = operation_mode
         self.model_folder = f'models_sc_{scenario}'
         self.scenario = scenario
+        self.orthogonality_flag = orthogonality_flag
+        self.varying_K_flag = varying_K_flag
         
-        device_text = "cuda" if (not (self.operation_mode==OperatingModes.TESTING)) and torch.cuda.is_available() else "cpu"
-        print(device_text)
-        self.device = torch.device(device_text)
+        device_txt = "cuda" if torch.cuda.is_available() and (not (self.operation_mode==OperatingModes.TESTING)) else "cpu"
+        self.device = torch.device(device_txt)
         
         self.root_path = root
         self.base_folder = 'data_logs_training' if self.operation_mode == OperatingModes.TRAINING else 'data_logs_testing'
@@ -38,19 +39,20 @@ class SimulationParameters:
         
         self.base_folder_path = os.path.join(self.root_path, self.base_folder)
         if results_base is None:
-            self.model_folder_path = os.path.join(self.root_path, self.model_folder)
+            self.results_base = os.path.join(self.root_path, f'simID_{simulationID}')
         else:
-            self.model_folder_path = os.path.join(results_base, self.model_folder)
+            self.results_base = os.path.join(results_base, f'simID_{simulationID}')
+
+        if self.operation_mode == OperatingModes.TESTING:
+            handle_deletion_and_creation(self.results_base, force_retain=True)
+            
+        self.model_folder_path = os.path.join(self.results_base, self.model_folder)
             
         self.data_folder = os.path.join(self.base_folder_path, "betas")
         self.validation_data_folder = os.path.join(self.base_folder_path, "betas_val")
         if not operation_mode==OperatingModes.TRAINING:
-            if results_base is None:
-                self.results_folder = os.path.join(self.base_folder_path, "results")
-                self.plot_folder = os.path.join(self.base_folder_path, "plots")
-            else:
-                self.results_folder = os.path.join(results_base, "results")
-                self.plot_folder = os.path.join(results_base, "plots")
+            self.results_folder = os.path.join(self.results_base, "results")
+            self.plot_folder = os.path.join(self.results_base, "plots")
         
 
         if not self.operation_mode == OperatingModes.PLOTTING_ONLY:

@@ -41,7 +41,7 @@ class HyperParameters(CommonParameters):
     @classmethod
     def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
 
-        cls.pre_int(simulation_parameters, system_parameters, is_test_mode)
+        cls.pre_int(simulation_parameters, system_parameters)
         cls.sqrt_laplace_matrix = system_parameters.sqrt_laplace_matrix
 
         cls.input_size = cls.M * cls.K
@@ -104,6 +104,7 @@ class NeuralNet(RootNet):
         self.InpDataset = BetaDataset  # D
 
     def forward(self, x):
+        x, _ = x
         output = self.GFT(x.view(-1, 1, self.input_size))
         # output = (1/self.system_parameters.number_of_antennas) * torch.exp(output)
         output = output.view(self.output_shape)*1e-1

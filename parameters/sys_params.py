@@ -87,13 +87,12 @@ class SystemParameters:
         torch.manual_seed(seed=0)
         random_mat = torch.normal(0, 1, (self.T_p, self.T_p))
         u, _, _ = torch.linalg.svd(random_mat)
-        phi_orth = u
+        self.phi_orth = u
         
-        torch.manual_seed(seed=1)
-        column_indices = torch.randint(0, self.T_p, [self.number_of_users])
-        # column_indices = torch.arange(0, self.number_of_users)
-        phi = torch.index_select(phi_orth, 0, column_indices)
-        self.phi_cross_mat = torch.abs(phi.conj() @ phi.T).to(simulation_parameters.device)
+        # torch.manual_seed(seed=1)
+        # column_indices = torch.randint(0, self.T_p, [self.number_of_users])
+        # phi = torch.index_select(self.phi_orth, 0, column_indices)
+        # self.phi_cross_mat = torch.abs(phi.conj() @ phi.T).to(simulation_parameters.device)
 
         area_dims = torch.tensor([self.area_width, self.area_height], device=simulation_parameters.device, requires_grad=False, dtype=torch.float32)
         

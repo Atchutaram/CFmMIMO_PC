@@ -20,7 +20,7 @@ class HyperParameters(CommonParameters):
     @classmethod
     def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
         
-        cls.pre_int(simulation_parameters, system_parameters, is_test_mode)
+        cls.pre_int(simulation_parameters, system_parameters)
         if cls.scenario == 1:
             cls.batch_size = 8 * 2
             cls.OUT_CH = 600
@@ -94,6 +94,7 @@ class NeuralNet(RootNet):
 
 
     def forward(self, x):
+        x, _ = x
         encoded = self.encoder(torch.unsqueeze(x, 1))
         encoded_shape = encoded.shape
         encoded = self.relu(self.linear1(encoded.view(-1, 1, self.OUT_CH)))

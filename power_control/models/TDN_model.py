@@ -20,7 +20,7 @@ class HyperParameters(CommonParameters):
     @classmethod
     def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
         
-        cls.pre_int(simulation_parameters, system_parameters, is_test_mode)
+        cls.pre_int(simulation_parameters, system_parameters)
         cls.hid = 50*cls.K
         
         if is_test_mode:
@@ -79,6 +79,7 @@ class NeuralNet(RootNet):
 
 
     def forward(self, x):
+        x, _ = x
         x = torch.unsqueeze(x, 1)
         decoded = []
         for m, FCN in enumerate(self.FCNs):

@@ -10,24 +10,29 @@ from .utils import Norm
 MODEL_NAME = 'FCN'
 
 class BetaDataset(RootDataset):
-    def __init__(self, data_path, normalizer, mode, n_samples, device):
+    def __init__(self, data_path, phi_orth, normalizer, mode, n_samples):
         self.path = data_path
         _, _, files = next(os.walk(self.path))
         self.n_samples = min(len(list(filter(lambda k: 'betas' in k, files))), n_samples)
         self.sc = normalizer
         self.mode = mode
-        self.device = device
+        self.phi_orth = phi_orth
         
     def __getitem__(self, index):
         beta_file_name = f'betas_sample{index}.pt'
         beta_file_path = os.path.join(self.path, beta_file_name)
-        beta_original = torch.load(beta_file_path)['betas'].to(dtype=torch.float32)
+        m = torch.load(beta_file_path)
+        beta_original = m['betas'].to(dtype=torch.float32)
+        pilot_sequence = m['pilot_sequence'].to(dtype=torch.int32)
+
+        phi = torch.index_select(self.phi_orth.to(dtype=torch.float32), 0, pilot_sequence)
+        phi_cross_mat = torch.abs(phi.conj() @ phi.T)
         
         beta_torch = torch.log(beta_original)
-        beta_torch = beta_torch.to(dtype=torch.float32, device=self.device)
+        beta_torch = beta_torch.to(dtype=torch.float32)
         beta_torch = beta_torch.reshape(beta_original.shape)
 
-        return beta_torch, beta_original.to(device=self.device)
+        return phi_cross_mat, beta_torch, beta_original
 
     def __len__(self):
         return self.n_samples
@@ -42,7 +47,7 @@ class HyperParameters(CommonParameters):
     @classmethod
     def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
         
-        cls.pre_int(simulation_parameters, system_parameters, is_test_mode)
+        cls.pre_int(simulation_parameters, system_parameters)
         cls.dropout = 0.5
         cls.input_size = cls.M * cls.K
         cls.output_size = cls.M * cls.K
@@ -67,8 +72,8 @@ class HyperParameters(CommonParameters):
     
 
 class NeuralNet(RootNet):
-    def __init__(self, device, system_parameters, grads):
-        super(NeuralNet, self).__init__(device, system_parameters, grads)
+    def __init__(self, system_parameters, grads):
+        super(NeuralNet, self).__init__(system_parameters, grads)
         
         self.n_samples = HyperParameters.n_samples
         self.num_epochs = HyperParameters.num_epochs
@@ -111,10 +116,10 @@ class NeuralNet(RootNet):
         )
         
         self.name = MODEL_NAME
-        self.to(self.device)
 
 
     def forward(self, x):
+        x, _ = x
         output = self.hidden_layer_1(x.view(-1, 1, self.input_size))
         output = self.hidden_layer_2(output)
         output = self.output_layer(output)

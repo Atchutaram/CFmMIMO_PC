@@ -4,7 +4,7 @@ import math
 
 def compute_vmat(betas, zeta_p, T_p, phi_cross_mat):
     # computes Eq (5)
-    # phi_cross_mat K X K
+    # phi_cross_mat b x K X K
     # betas b X M X K
 
     den = torch.ones(betas.shape, device=betas.device, requires_grad=False, dtype=torch.float32) + zeta_p * T_p * (betas @ (phi_cross_mat ** 2))
@@ -21,8 +21,8 @@ def individual_utility_computation(betas, mus, N, zeta_d, T_p, T_c, v_mat, phi_c
     # mus b X M X K
 
     k = target_user
-
-    nu_mat_k = torch.einsum('k, bmk, bm -> bmk', phi_cross_mat[:, k], (torch.sqrt(v_mat) / betas), betas[:, :, k])
+ 
+    nu_mat_k = torch.einsum('bk, bmk, bm -> bmk', phi_cross_mat[:, :, k], (torch.sqrt(v_mat) / betas), betas[:, :, k])
 
     nu_dot_mu = torch.einsum('bmk,bmk->bk', nu_mat_k, mus)  # B X K
     beta_k_dot_mus = torch.einsum('bm,bmk->bmk', betas[:, :, k], mus)
