@@ -126,6 +126,11 @@ retain = (retain==1)  # Translating {0, 1} to {False, True}
 orthogonality_flag = (orthogonality_flag == 1)
 varying_K_flag = (varying_K_flag == 1)
 
+if varying_K_flag:
+    print("Varying user's feature is currently unavailable!")
+    import sys
+    sys.exit()
+
 
 if orthogonality_flag and scenario > 1:
     print('Orthogonality flag cannot be True for this scenarios! So, it is set to False.')
@@ -191,11 +196,21 @@ if __name__ == '__main__':
         inp_number_of_users = 20
         inp_access_point_density = 2000
         # models_list = ['TDN', 'GFT', , 'FCN', 'ANN']
-        models_list = ['FCN', 'ANN',]
+
+        if simulation_parameters.orthogonality_flag:
+            models_list = ['FCN', 'ANN',]
+        else:
+            models_list = ['ANN',]
         
     elif simulation_parameters.scenario==2:
         coverage_area = 1
         inp_number_of_users = 500
+        inp_access_point_density = 2000
+        models_list = ['ANN',]  # Plan is to do ['AE-FCN', 'ANN', 'GFT', 'TP']
+        
+    elif simulation_parameters.scenario==3:
+        coverage_area = 10
+        inp_number_of_users = 1000
         inp_access_point_density = 2000
         models_list = ['ANN',]  # Plan is to do ['AE-FCN', 'ANN', 'GFT', 'TP']
     
