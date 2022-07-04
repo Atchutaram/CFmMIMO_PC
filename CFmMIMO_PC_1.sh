@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --time=02:00:00
-#SBATCH --job-name=main_learn
+#SBATCH --job-name=main_learn_1
 #SBATCH --mem-per-cpu=8G
 #SBATCH --cpus-per-task=1
 #SBATCH --gres=gpu:4
-#SBATCH --output=main_learn.out
+#SBATCH --output=main_learn_1.out
 
 triton=1  # do not change
 
