@@ -16,7 +16,7 @@ def train(simulation_parameters, system_parameters):
 
         gpus = torch.cuda.device_count()
         print('The number of available/used GPUs: ', gpus)
-        trainer = Trainer(gpus=gpus, max_epochs=model.num_epochs)
+        trainer = Trainer(gpus=-1, max_epochs=model.num_epochs)
         
         trainer.fit(model)
         model.save()
