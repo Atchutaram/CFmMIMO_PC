@@ -62,11 +62,17 @@ class HyperParameters(CommonParameters):
         if is_test_mode:
             cls.batch_size = 1
             return
+        
+        number_of_micro_batches = torch.cuda.device_count()  # This is to handle data parallelism
+        if not number_of_micro_batches:
+            number_of_micro_batches = 1
 
         if cls.scenario == 0:
-            cls.batch_size = 8 * 2
+            batch_size = 8 * 2
+            cls.batch_size = int(batch_size/number_of_micro_batches)
         elif cls.scenario == 1:
-            cls.batch_size = 8 * 2
+            batch_size = 8 * 2
+            cls.batch_size = int(batch_size/number_of_micro_batches)
         else:
             cls.batch_size = 1
     
