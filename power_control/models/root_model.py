@@ -89,7 +89,6 @@ class RootNet(pl.LightningModule):
         # self.slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
 
         self.register_buffer("slack_variable_in", torch.rand((1,), dtype=torch.float32))
-        self.slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
         
         # print(type(self.slack_variable), type(self.slack_variable_in))
         # from sys import exit
@@ -145,6 +144,7 @@ class RootNet(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         phi_cross_mat, beta_torch, beta_original = batch
 
+        self.slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
         mus = self([beta_torch, phi_cross_mat])
 
         [_, _, utility] = self.grads(beta_original, mus, self.eta, self.slack_variable, self.device, self.system_parameters, phi_cross_mat) # Replace with direct utility computation
