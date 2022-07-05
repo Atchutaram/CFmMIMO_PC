@@ -105,9 +105,8 @@ class RootNet(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
         phi_cross_mat, beta_torch, beta_original = batch
-        if self.current_epoch == 0:
-            self.slack_variable_in = self.slack_variable_in.to(self.device)
-            self.slack_variable = self.slack_variable.to(self.device)
+        self.slack_variable_in.to(self.device)
+        self.slack_variable.to(self.device)
 
         opt.zero_grad()
         self.slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
@@ -143,9 +142,8 @@ class RootNet(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         phi_cross_mat, beta_torch, beta_original = batch
-        if self.current_epoch == 0:
-            self.slack_variable_in = self.slack_variable_in.to(self.device)
-            self.slack_variable = self.slack_variable.to(self.device)
+        self.slack_variable_in.to(self.device)
+        self.slack_variable.to(self.device)
 
         mus = self([beta_torch, phi_cross_mat])
 
@@ -176,7 +174,7 @@ class RootNet(pl.LightningModule):
         mus.backward((1/B)*mus_grads)
         # for grad_wrt_slack in grad_wrt_slack_batch:
         #     self.slack_variable.backward((1/B)*grad_wrt_slack, retain_graph=True)
-        self.slack_variable.backward(grad_wrt_slack_batch.mean())
+        self.slack_variable.backward(grad_wrt_slack_batch.mean(dim=0))
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate) 
