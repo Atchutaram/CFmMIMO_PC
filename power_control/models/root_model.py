@@ -105,7 +105,9 @@ class RootNet(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
         phi_cross_mat, beta_torch, beta_original = batch
-        self.slack_variable = self.slack_variable.to(self.device)
+        if self.current_epoch == 0:
+            self.slack_variable_in = self.slack_variable_in.to(self.device)
+            self.slack_variable = self.slack_variable.to(self.device)
 
         opt.zero_grad()
         self.slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
@@ -141,12 +143,11 @@ class RootNet(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         phi_cross_mat, beta_torch, beta_original = batch
+        if self.current_epoch == 0:
+            self.slack_variable_in = self.slack_variable_in.to(self.device)
+            self.slack_variable = self.slack_variable.to(self.device)
 
         mus = self([beta_torch, phi_cross_mat])
-        self.slack_variable = self.slack_variable.to(self.device)
-        # import sys
-        # print(mus.shape, beta_original.shape, beta_torch.shape, phi_cross_mat.shape)
-        # sys.exit()
 
         [_, _, utility] = self.grads(beta_original, mus, self.eta, self.slack_variable, self.device, self.system_parameters, phi_cross_mat) # Replace with direct utility computation
         
