@@ -83,8 +83,12 @@ class RootNet(pl.LightningModule):
         torch.seed()
         # self.slack_variable_in = torch.rand((1,), requires_grad=True, dtype=torch.float32)
         # self.slack_variable = torch.zeros((1,), requires_grad=True, dtype=torch.float32)
-        self.slack_variable_in = nn.Parameter(torch.rand((1,), dtype=torch.float32))
         # self.slack_variable = nn.Parameter(torch.zeros((1,), dtype=torch.float32))
+
+        # self.slack_variable_in = nn.Parameter(torch.rand((1,), dtype=torch.float32))
+        # self.slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
+
+        self.register_buffer("slack_variable_in", torch.rand((1,), dtype=torch.float32))
         self.slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
         
         # print(type(self.slack_variable), type(self.slack_variable_in))
@@ -105,8 +109,6 @@ class RootNet(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
         phi_cross_mat, beta_torch, beta_original = batch
-        self.slack_variable_in.to(self.device)
-        self.slack_variable.to(self.device)
 
         opt.zero_grad()
         self.slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
@@ -142,8 +144,6 @@ class RootNet(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         phi_cross_mat, beta_torch, beta_original = batch
-        self.slack_variable_in.to(self.device)
-        self.slack_variable.to(self.device)
 
         mus = self([beta_torch, phi_cross_mat])
 
