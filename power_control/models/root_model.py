@@ -174,8 +174,9 @@ class RootNet(pl.LightningModule):
         B = mus_grads.shape[0]
         
         mus.backward((1/B)*mus_grads)
-        for grad_wrt_slack in grad_wrt_slack_batch:
-            self.slack_variable.backward((1/B)*grad_wrt_slack, retain_graph=True)
+        # for grad_wrt_slack in grad_wrt_slack_batch:
+        #     self.slack_variable.backward((1/B)*grad_wrt_slack, retain_graph=True)
+        self.slack_variable.backward(grad_wrt_slack_batch.mean())
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate) 
