@@ -116,8 +116,8 @@ class RootNet(pl.LightningModule):
         with torch.no_grad():
             [mus_grads, grad_wrt_slack, utility] = self.grads(beta_original, mus, self.eta, self.slack_variable, self.device, self.system_parameters, phi_cross_mat)
         
-        
-        self.manual_backward(mus, None, gradient=[mus_grads, grad_wrt_slack])
+
+        self.manual_backward(mus, None, gradient=[self.slack_variable, mus_grads, grad_wrt_slack])
         opt.step()
         
         with torch.no_grad():
@@ -168,13 +168,13 @@ class RootNet(pl.LightningModule):
     def backward(self, loss, *args, **kwargs):
         mus=loss
 
-        [mus_grads, grad_wrt_slack_batch] = kwargs['gradient']
+        [slack_variable, mus_grads, grad_wrt_slack_batch] = kwargs['gradient']
         B = mus_grads.shape[0]
         
         mus.backward((1/B)*mus_grads)
         # for grad_wrt_slack in grad_wrt_slack_batch:
         #     self.slack_variable.backward((1/B)*grad_wrt_slack, retain_graph=True)
-        self.slack_variable.backward(grad_wrt_slack_batch.mean(dim=0))
+        slack_variable.backward(grad_wrt_slack_batch.mean(dim=0))
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate) 
