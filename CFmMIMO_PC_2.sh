@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=01:00:00
+#SBATCH --time=08:00:00
 #SBATCH --job-name=main_learn_2
 #SBATCH --mem-per-cpu=8G
 #SBATCH --cpus-per-task=1
