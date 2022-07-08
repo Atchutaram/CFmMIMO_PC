@@ -82,7 +82,8 @@ class SystemParameters:
 
         self.area_width = torch.sqrt(self.coverage_area)  # in Km
         self.area_height = self.area_width
-        self.number_of_access_points = ceil(access_point_density * self.coverage_area.item())  # M
+        self.number_of_access_points = round(access_point_density*self.coverage_area.item())  # M
+        print(f'Number of APs: {self.number_of_access_points} \nNumber of users: {self.number_of_users}\n')
 
         torch.manual_seed(seed=0)
         random_mat = torch.normal(0, 1, (self.T_p, self.T_p))

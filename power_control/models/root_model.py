@@ -88,7 +88,7 @@ class RootNet(pl.LightningModule):
         # self.slack_variable_in = nn.Parameter(torch.rand((1,), dtype=torch.float32))
         # self.slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
 
-        self.register_buffer("slack_variable_in", torch.rand((1,), dtype=torch.float32))
+        self.register_buffer("slack_variable_in", torch.rand((1,), requires_grad=True, dtype=torch.float32))
         
         # print(type(self.slack_variable), type(self.slack_variable_in))
         # from sys import exit
@@ -110,18 +110,18 @@ class RootNet(pl.LightningModule):
         phi_cross_mat, beta_torch, beta_original = batch
 
         opt.zero_grad()
-        self.slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
+        slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
         mus = self([beta_torch, phi_cross_mat])
 
         with torch.no_grad():
-            [mus_grads, grad_wrt_slack, utility] = self.grads(beta_original, mus, self.eta, self.slack_variable, self.device, self.system_parameters, phi_cross_mat)
+            [mus_grads, grad_wrt_slack, utility] = self.grads(beta_original, mus, self.eta, slack_variable, self.device, self.system_parameters, phi_cross_mat)
         
 
-        self.manual_backward(mus, None, gradient=[self.slack_variable, mus_grads, grad_wrt_slack])
+        self.manual_backward(mus, None, gradient=[slack_variable, mus_grads, grad_wrt_slack])
         opt.step()
         
         with torch.no_grad():
-            temp_constraints = (1 / self.system_parameters.number_of_antennas - (torch.norm(mus, dim=2)) ** 2 - self.slack_variable ** 2)
+            temp_constraints = (1 / self.system_parameters.number_of_antennas - (torch.norm(mus, dim=2)) ** 2 - slack_variable ** 2)
 
             if torch.any(temp_constraints<0):
                 print('Training constraints failed!')
@@ -144,20 +144,20 @@ class RootNet(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         phi_cross_mat, beta_torch, beta_original = batch
 
-        self.slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
+        slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
         mus = self([beta_torch, phi_cross_mat])
 
-        [_, _, utility] = self.grads(beta_original, mus, self.eta, self.slack_variable, self.device, self.system_parameters, phi_cross_mat) # Replace with direct utility computation
+        [_, _, utility] = self.grads(beta_original, mus, self.eta, slack_variable, self.device, self.system_parameters, phi_cross_mat) # Replace with direct utility computation
         
         
         
-        temp_constraints = (1 / self.system_parameters.number_of_antennas - (torch.norm(mus, dim=2)) ** 2 - self.slack_variable ** 2)
+        temp_constraints = (1 / self.system_parameters.number_of_antennas - (torch.norm(mus, dim=2)) ** 2 - slack_variable ** 2)
 
         if torch.any(temp_constraints<0):
             print('Training constraints failed!')
             print('num_of_violations: ', (temp_constraints<0).sum())
-            print('max_violations: ', ((torch.norm(mus, dim=2)) ** 2).max(), 'slack_variable: ', temp_constraints)
-            exit()
+            print('max_violations: ', ((torch.norm(mus, dim=2)) ** 2).max(), 'temp_constraints: ', temp_constraints)
+            raise Exception("Initialization lead to power constraints violation!") 
         loss = (-utility + (self.eta/2) * (torch.log(temp_constraints).sum(dim=-1))).mean()
 
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
@@ -172,9 +172,9 @@ class RootNet(pl.LightningModule):
         B = mus_grads.shape[0]
         
         mus.backward((1/B)*mus_grads)
-        # for grad_wrt_slack in grad_wrt_slack_batch:
-        #     self.slack_variable.backward((1/B)*grad_wrt_slack, retain_graph=True)
-        slack_variable.backward(grad_wrt_slack_batch.mean(dim=0))
+        for grad_wrt_slack in grad_wrt_slack_batch:
+            slack_variable.backward((1/B)*grad_wrt_slack, retain_graph=True)
+        # slack_variable.backward(grad_wrt_slack_batch.mean(dim=0))
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate) 

@@ -11,7 +11,7 @@ triton=1  # do not change
 
 # Configuration
 simID=4
-number_of_samples=400
+number_of_samples=400000
 operation_mode=1
 scenario=2
 orthogonality=0

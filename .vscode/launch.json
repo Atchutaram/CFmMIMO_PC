@@ -8,9 +8,11 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "${CFmMIMO_PC}",
+            // "program": "${CFmMIMO_PC}",
+            "program": "${file}",
             "console": "integratedTerminal",
-            "args":["--mode", "3"]
+            "args":["--mode", "1", "--simulationID", "2", "--scenario", "0"],
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

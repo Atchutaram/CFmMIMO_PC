@@ -62,8 +62,7 @@ def grads(betas_in, mus_in, eta, slack_variable, device, system_parameters, phi_
                 print('Increase model.eta or reduce step size')
                 print('num_of_violations: ', (temp_den<0).sum())
                 print('max_violations: ', ((torch.norm(mus_in, dim=2)) ** 2).max(), 'slack_variable: ', slack_variable)
-                from sys import exit
-                exit()
+                raise Exception("Initialization lead to power constraints violation!") 
         
         temp = torch.unsqueeze(1/temp_den, -1)  # b X M X 1
 
