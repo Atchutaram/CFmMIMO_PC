@@ -57,10 +57,7 @@ class SimulationParameters:
 
         if not self.operation_mode == OperatingModes.PLOTTING_ONLY:
             if not os.path.exists(self.base_folder_path):
-                print(f'{self.base_folder_path} does not exit')
                 os.makedirs(self.base_folder_path)
-            else:
-                print(f'{self.base_folder_path} exits')
 
             handle_deletion_and_creation(self.data_folder, self.number_of_samples, retain)
             # The above function deletes and re-creates the folder only if retain=False. If we request different number of data samples than existing, then retain fails.
