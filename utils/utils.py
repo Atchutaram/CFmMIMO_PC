@@ -54,13 +54,15 @@ def delete_folder_contents(grad_inps_folder):
 
     files = glob.glob(os.path.join(grad_inps_folder, '*'))
     for f in files:
-        while True:
+        for index in range(1000):
             try:
                 os.remove(f)
             except:
                 pass
             if not os.path.exists(f):
                 break
+            if index == 999:
+                raise Exception(f"Sorry, could not delete {f}")
 
 
 def query_fn(message):
