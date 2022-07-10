@@ -37,7 +37,7 @@ class SimulationParameters:
             print('root_path failure!')
             sys.exit()
         
-        self.base_folder_path = os.path.join(self.root_path, self.base_folder)
+        self.base_folder_path = os.path.join(self.root_path, f'simID_{simulationID}', self.base_folder)
         if results_base is None:
             self.results_base = os.path.join(self.root_path, f'simID_{simulationID}')
         else:
