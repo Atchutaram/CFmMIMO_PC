@@ -8,6 +8,8 @@ from torch.optim.lr_scheduler import MultiStepLR, StepLR
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from sys import exit
+import math
+
 from utils.utils import tensor_max_min_print
 
 
@@ -83,11 +85,17 @@ class RootNet(pl.LightningModule):
         self.relu = nn.ReLU()
         torch.seed()
         
+        self.N = system_parameters.number_of_antennas
+        self.N_inv_root = 1/math.sqrt(self.N)
+        self.K_inv_root = 1/math.sqrt(system_parameters.number_of_users)
+        slack_const = 6/math.sqrt(2)-3
+        mul_const = 6/math.sqrt(2*system_parameters.number_of_users)-3
+        
         # slack_variable_in = torch.zeros((system_parameters.number_of_access_points, ), dtype=torch.float32)-2.5
-        slack_variable_in = torch.tensor((-2.5,), dtype=torch.float32)
+        slack_variable_in = torch.tensor((slack_const,), dtype=torch.float32)
         self.register_parameter("slack_variable_in",  nn.parameter.Parameter(slack_variable_in))
 
-        multiplication_factor_in = torch.tensor((-2.4,), dtype=torch.float32)
+        multiplication_factor_in = torch.tensor((mul_const,), dtype=torch.float32)
         self.register_parameter("multiplication_factor_in",  nn.parameter.Parameter(multiplication_factor_in))
         
         self.system_parameters = system_parameters
@@ -106,7 +114,7 @@ class RootNet(pl.LightningModule):
         phi_cross_mat, beta_torch, beta_original = batch
 
         opt.zero_grad()
-        slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)
+        slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*self.N_inv_root
         mus = self([beta_torch, phi_cross_mat])
 
         with torch.no_grad():
@@ -140,7 +148,7 @@ class RootNet(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         phi_cross_mat, beta_torch, beta_original = batch
 
-        slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)
+        slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*self.N_inv_root
         mus = self([beta_torch, phi_cross_mat])
 
         [_, _, utility] = self.grads(beta_original, mus, self.eta, slack_variable, self.device, self.system_parameters, phi_cross_mat) # Replace with direct utility computation        
