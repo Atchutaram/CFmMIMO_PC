@@ -5,6 +5,7 @@ from sklearn.preprocessing import StandardScaler
 
 from .root_model import RootDataset, CommonParameters, RootNet
 from .utils import Norm
+from utils.utils import tensor_max_min_print
 
 
 MODEL_NAME = 'FCN'
@@ -52,10 +53,10 @@ class HyperParameters(CommonParameters):
         cls.input_size = cls.M * cls.K
         cls.output_size = cls.M * cls.K
         MK = 1 * cls.M * cls.K
-        if 0 <= cls.dropout < 1:
+        if 0 <= cls.dropout <= (1-1e-1):
             cls.hidden_size = int((1/(1-cls.dropout))*MK)
         else:
-            cls.hidden_size = int(MK)
+            cls.hidden_size = MK
 
         cls.output_shape = (-1, cls.M, cls.K)
         
@@ -100,25 +101,24 @@ class NeuralNet(RootNet):
         self.dropout = HyperParameters.dropout
         
         self.hidden_layer_1 = nn.Sequential(
-            Norm(self.input_size),
             nn.Linear(self.input_size, self.hidden_size),
+            Norm(self.hidden_size),
             nn.ReLU(),
+            nn.Dropout(p=self.dropout),
         )
         
         
         self.hidden_layer_2 = nn.Sequential(
-
-            Norm(self.hidden_size),
             nn.Linear(self.hidden_size, self.hidden_size),
+            Norm(self.hidden_size),
             nn.ReLU(),
             nn.Dropout(p=self.dropout),
         )
         
         
         self.output_layer = nn.Sequential(
-            Norm(self.hidden_size),
             nn.Linear(self.hidden_size, self.output_size),
-            nn.Sigmoid(),
+            Norm(self.output_size),
         )
         
         self.name = MODEL_NAME
@@ -129,5 +129,6 @@ class NeuralNet(RootNet):
         output = self.hidden_layer_1(x.view(-1, 1, self.input_size))
         output = self.hidden_layer_2(output)
         output = self.output_layer(output)
-        output = output.view(self.output_shape)*1e-1
-        return output
+        output = torch.nn.functional.hardsigmoid(output)
+        output = output.view(self.output_shape)
+        return output*torch.nn.functional.hardsigmoid(self.multiplication_factor_in)

@@ -5,6 +5,7 @@ from sklearn.preprocessing import StandardScaler
 
 from .root_model import RootDataset, CommonParameters, RootNet
 from .utils import EncoderLayer, Norm
+from utils.utils import tensor_max_min_print
 
 
 MODEL_NAME = 'ANN'
@@ -98,8 +99,8 @@ class NeuralNet(RootNet):
         self.layer4 = EncoderLayer(M, heads=heads, dropout=dropout)
         self.layer5 = EncoderLayer(M, heads=heads, dropout=dropout)
         self.layer6 = EncoderLayer(M, heads=heads, dropout=dropout)
-        self.norm = Norm(M)
-        
+
+
         self.name = MODEL_NAME
 
 
@@ -119,8 +120,6 @@ class NeuralNet(RootNet):
         x = self.layer5(x, mask=mask)
         
         x = self.layer6(x, mask=mask)
+        x = torch.nn.functional.hardsigmoid(x)
 
-        x = self.norm(x)
-        x = torch.sigmoid(x)
-
-        return x.transpose(1,2).contiguous()*1e-1
+        return x.transpose(1,2).contiguous()*torch.nn.functional.hardsigmoid(self.multiplication_factor_in)

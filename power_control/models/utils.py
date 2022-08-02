@@ -158,7 +158,11 @@ class FeedForward(nn.Module):
 
     def __init__(self, M, dropout = 0.1):
         super().__init__() 
-        d_mid = int(4 * M / (1-dropout))
+
+        if 0 <= dropout <= (1-1e-1):
+            d_mid = int(4 / (1-dropout)) * M
+        else:
+            d_mid = M
 
         self.linear_1 = nn.Linear(M, d_mid)
         self.dropout = nn.Dropout(dropout)
@@ -187,7 +191,7 @@ class Norm(nn.Module):
 
 class EncoderLayer(nn.Module):
     
-    def __init__(self, M, heads, dropout = 0.1):
+    def __init__(self, M, heads, dropout=0.1):
         super().__init__()
         self.norm_1 = Norm(M)
         self.norm_2 = Norm(M)
@@ -197,10 +201,10 @@ class EncoderLayer(nn.Module):
         self.dropout_2 = nn.Dropout(dropout)
         
     def forward(self, x, mask):
-        x2 = self.norm_1(x)
-        x = x + self.dropout_1(self.attn(x2, mask))
-        x2 = self.norm_2(x)
-        x = x + self.dropout_2(self.ff(x2))
+        x = x + self.dropout_1(self.attn(x, mask))
+        x = self.norm_1(x)
+        x = x + self.dropout_2(self.ff(x))
+        x = self.norm_2(x)
         return x
 
 class PositionalEncoder(nn.Module):

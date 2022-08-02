@@ -85,3 +85,8 @@ def find_the_latest_file(model_folder):
         if not os.path.isfile(file):
             file = None
     return file
+
+def tensor_max_min_print(tensor, text, exit_flag=False):
+    print(f'Min of {text}: {tensor.min().detach().item()} Max of {text}: {tensor.max().detach().item()} \n')
+    if exit_flag:
+        sys.exit()

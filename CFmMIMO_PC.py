@@ -5,7 +5,7 @@ from parameters.sim_params import OperatingModes
 
 default_number_of_samples = 400000
 default_number_of_samples = 100000
-default_number_of_samples = 1000
+default_number_of_samples = 100
 
 testing_number_of_samples = min(int(default_number_of_samples * 0.25), 1000)
 

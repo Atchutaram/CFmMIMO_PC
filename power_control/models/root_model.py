@@ -8,6 +8,7 @@ from torch.optim.lr_scheduler import MultiStepLR, StepLR
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from sys import exit
+from utils.utils import tensor_max_min_print
 
 
 class Mode(Enum):
@@ -81,18 +82,13 @@ class RootNet(pl.LightningModule):
         
         self.relu = nn.ReLU()
         torch.seed()
-        # self.slack_variable_in = torch.rand((1,), requires_grad=True, dtype=torch.float32)
-        # self.slack_variable = torch.zeros((1,), requires_grad=True, dtype=torch.float32)
-        # self.slack_variable = nn.Parameter(torch.zeros((1,), dtype=torch.float32))
-
-        # self.slack_variable_in = nn.Parameter(torch.rand((1,), dtype=torch.float32))
-        # self.slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
-
-        self.register_buffer("slack_variable_in", torch.rand((1,), requires_grad=True, dtype=torch.float32))
         
-        # print(type(self.slack_variable), type(self.slack_variable_in))
-        # from sys import exit
-        # exit()
+        # slack_variable_in = torch.zeros((system_parameters.number_of_access_points, ), dtype=torch.float32)-2.5
+        slack_variable_in = torch.tensor((-2.5,), dtype=torch.float32)
+        self.register_parameter("slack_variable_in",  nn.parameter.Parameter(slack_variable_in))
+
+        multiplication_factor_in = torch.tensor((-2.4,), dtype=torch.float32)
+        self.register_parameter("multiplication_factor_in",  nn.parameter.Parameter(multiplication_factor_in))
         
         self.system_parameters = system_parameters
 
@@ -110,7 +106,7 @@ class RootNet(pl.LightningModule):
         phi_cross_mat, beta_torch, beta_original = batch
 
         opt.zero_grad()
-        slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
+        slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)
         mus = self([beta_torch, phi_cross_mat])
 
         with torch.no_grad():
@@ -144,11 +140,10 @@ class RootNet(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         phi_cross_mat, beta_torch, beta_original = batch
 
-        slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*0.1
+        slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)
         mus = self([beta_torch, phi_cross_mat])
 
-        [_, _, utility] = self.grads(beta_original, mus, self.eta, slack_variable, self.device, self.system_parameters, phi_cross_mat) # Replace with direct utility computation
-        
+        [_, _, utility] = self.grads(beta_original, mus, self.eta, slack_variable, self.device, self.system_parameters, phi_cross_mat) # Replace with direct utility computation        
         
         
         temp_constraints = (1 / self.system_parameters.number_of_antennas - (torch.norm(mus, dim=2)) ** 2 - slack_variable ** 2)
