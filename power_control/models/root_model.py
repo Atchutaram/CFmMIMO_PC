@@ -91,11 +91,12 @@ class RootNet(pl.LightningModule):
         slack_const = 6/math.sqrt(2)-3
         mul_const = 6/math.sqrt(2*system_parameters.number_of_users)-3
         
-        # slack_variable_in = torch.zeros((system_parameters.number_of_access_points, ), dtype=torch.float32)-2.5
-        slack_variable_in = torch.tensor((slack_const,), dtype=torch.float32)
+        slack_variable_in = torch.ones((system_parameters.number_of_access_points, ), dtype=torch.float32)*slack_const
+        # slack_variable_in = torch.tensor((slack_const,), dtype=torch.float32)
         self.register_parameter("slack_variable_in",  nn.parameter.Parameter(slack_variable_in))
 
-        multiplication_factor_in = torch.tensor((mul_const,), dtype=torch.float32)
+        multiplication_factor_in = torch.ones((system_parameters.number_of_access_points, ), dtype=torch.float32)*mul_const
+        # multiplication_factor_in = torch.tensor((mul_const,), dtype=torch.float32)
         self.register_parameter("multiplication_factor_in",  nn.parameter.Parameter(multiplication_factor_in))
         
         self.system_parameters = system_parameters
@@ -131,7 +132,8 @@ class RootNet(pl.LightningModule):
                 print('Training constraints failed!')
                 exit()
             
-            loss = (-utility + (self.eta/2) * (torch.log(temp_constraints).sum(dim=-1))).mean()
+            # loss = (-utility + (self.eta/2) * (torch.log(temp_constraints).sum(dim=-1))).mean()
+            loss = -utility.mean()
         
         tensorboard_logs = {'train_loss': loss}
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
@@ -161,11 +163,15 @@ class RootNet(pl.LightningModule):
             print('num_of_violations: ', (temp_constraints<0).sum())
             print('max_violations: ', ((torch.norm(mus, dim=2)) ** 2).max(), 'temp_constraints: ', temp_constraints)
             raise Exception("Initialization lead to power constraints violation!") 
-        loss = (-utility + (self.eta/2) * (torch.log(temp_constraints).sum(dim=-1))).mean()
+        # loss = (-utility + (self.eta/2) * (torch.log(temp_constraints).sum(dim=-1))).mean()
+        loss = -utility.mean()
 
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
 
         return {"val_loss": loss}
+
+    # def training_epoch_end(self, outputs):
+    #     print(torch.nn.functional.hardsigmoid(self.slack_variable_in).mean().item()*self.N_inv_root)
         
 
     def backward(self, loss, *args, **kwargs):
