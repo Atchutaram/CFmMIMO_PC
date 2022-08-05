@@ -132,8 +132,9 @@ class RootNet(pl.LightningModule):
                 print('Training constraints failed!')
                 exit()
             
-            # loss = (-utility + (self.eta/2) * (torch.log(temp_constraints).sum(dim=-1))).mean()
-            loss = -utility.mean()
+            u = ((self.eta/(self.eta+1))*utility + (1/(self.eta+1))*(1/2)*(torch.log(temp_constraints).sum(dim=-1))).mean()
+            # u = utility.mean()
+            loss = -u # loss is negative of the utility
         
         tensorboard_logs = {'train_loss': loss}
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
@@ -163,15 +164,16 @@ class RootNet(pl.LightningModule):
             print('num_of_violations: ', (temp_constraints<0).sum())
             print('max_violations: ', ((torch.norm(mus, dim=2)) ** 2).max(), 'temp_constraints: ', temp_constraints)
             raise Exception("Initialization lead to power constraints violation!") 
-        # loss = (-utility + (self.eta/2) * (torch.log(temp_constraints).sum(dim=-1))).mean()
-        loss = -utility.mean()
+        u = ((self.eta/(self.eta+1))*utility + (1/(self.eta+1))*(1/2)*(torch.log(temp_constraints).sum(dim=-1))).mean()
+        # u = utility.mean()
+        loss = -u
 
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
 
         return {"val_loss": loss}
 
-    # def training_epoch_end(self, outputs):
-    #     print(torch.nn.functional.hardsigmoid(self.slack_variable_in).mean().item()*self.N_inv_root)
+    def training_epoch_end(self, outputs):
+        print(torch.nn.functional.hardsigmoid(self.multiplication_factor_in).mean().item()*self.N_inv_root, torch.nn.functional.hardsigmoid(self.slack_variable_in).mean().item()*self.N_inv_root)
         
 
     def backward(self, loss, *args, **kwargs):
