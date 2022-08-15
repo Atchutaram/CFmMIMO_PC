@@ -5,7 +5,7 @@ from parameters.sim_params import OperatingModes
 
 default_number_of_samples = 400000
 default_number_of_samples = 100000
-default_number_of_samples = 2000
+default_number_of_samples = 100
 
 testing_number_of_samples = min(int(default_number_of_samples * 0.25), 1000)
 
@@ -133,7 +133,7 @@ if varying_K_flag:
 
 
 if orthogonality_flag and scenario > 1:
-    print('Orthogonality flag cannot be True for this scenarios! So, it is set to False.')
+    print('Orthogonality flag cannot be True for these scenarios! So, it is set to False.')
     orthogonality_flag = False
 
 
@@ -160,10 +160,10 @@ cwd = os.getcwd()
 if host == 1:
     # This use case is intended only for the authors of this work.
     root_base = os.path.join('/tmp', 'hsperfdata_kochark1')
-    handle_deletion_and_creation(root_base)
+    handle_deletion_and_creation(root_base, force_retain=True)
 
     root = os.path.join('/tmp', 'hsperfdata_kochark1', 'CFmMIMO_PC')
-    handle_deletion_and_creation(root)
+    handle_deletion_and_creation(root, force_retain=True)
 
     triton_results_base = os.path.join('/scratch', 'work', 'kochark1', 'CFmMIMO_PC')
     handle_deletion_and_creation(triton_results_base, force_retain=True)

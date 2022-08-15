@@ -101,6 +101,7 @@ class NeuralNet(RootNet):
         self.dropout = HyperParameters.dropout
         
         self.hidden_layer_1 = nn.Sequential(
+            Norm(self.input_size),
             nn.Linear(self.input_size, self.hidden_size),
             Norm(self.hidden_size),
             nn.ReLU(),
@@ -131,4 +132,4 @@ class NeuralNet(RootNet):
         output = self.output_layer(output)
         output = torch.nn.functional.hardsigmoid(output)
         output = output.view(self.output_shape)
-        return output*torch.nn.functional.hardsigmoid(self.multiplication_factor_in).view(1,-1,1)*self.N_inv_root
+        return output*self.N_inv_root*torch.nn.functional.hardsigmoid(self.scale_factor_in)*self.N_inv_root

@@ -10,6 +10,8 @@ import pytorch_lightning as pl
 from sys import exit
 import math
 
+from .utils import inv_sigmoid
+
 from utils.utils import tensor_max_min_print
 
 
@@ -60,7 +62,7 @@ class CommonParameters:
     gamma = 0.7
     step_size = 1
     num_epochs = 8
-    eta = 1e-4
+    eta = 1
     VARYING_STEP_SIZE = True
 
     InpDataSet = RootDataset
@@ -88,16 +90,16 @@ class RootNet(pl.LightningModule):
         self.N = system_parameters.number_of_antennas
         self.N_inv_root = 1/math.sqrt(self.N)
         self.K_inv_root = 1/math.sqrt(system_parameters.number_of_users)
-        slack_const = 6/math.sqrt(2)-3
-        mul_const = 6/math.sqrt(2*system_parameters.number_of_users)-3
+        slack_sqr = 1e-4
+        slack_const = inv_sigmoid(math.sqrt(slack_sqr))
+        scale_const = inv_sigmoid(self.K_inv_root*math.sqrt((1-slack_sqr)))
         
         slack_variable_in = torch.ones((system_parameters.number_of_access_points, ), dtype=torch.float32)*slack_const
         # slack_variable_in = torch.tensor((slack_const,), dtype=torch.float32)
         self.register_parameter("slack_variable_in",  nn.parameter.Parameter(slack_variable_in))
 
-        multiplication_factor_in = torch.ones((system_parameters.number_of_access_points, ), dtype=torch.float32)*mul_const
-        # multiplication_factor_in = torch.tensor((mul_const,), dtype=torch.float32)
-        self.register_parameter("multiplication_factor_in",  nn.parameter.Parameter(multiplication_factor_in))
+        scale_factor_in = torch.ones((1, ), dtype=torch.float32)*scale_const
+        self.register_parameter("scale_factor_in",  nn.parameter.Parameter(scale_factor_in))
         
         self.system_parameters = system_parameters
 
@@ -133,17 +135,12 @@ class RootNet(pl.LightningModule):
                 exit()
             
             u = ((self.eta/(self.eta+1))*utility + (1/(self.eta+1))*(1/2)*(torch.log(temp_constraints).sum(dim=-1))).mean()
-            # u = utility.mean()
+            # u = ((1/(self.eta+1))*(1/2)*(torch.log(temp_constraints).sum(dim=-1))).mean()
+            # u = (self.eta/(self.eta+1))*utility.mean()
             loss = -u # loss is negative of the utility
         
         tensorboard_logs = {'train_loss': loss}
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
-        if self.VARYING_STEP_SIZE:
-            sch = self.lr_schedulers()
-            
-            # if self.trainer.is_last_batch and self.trainer.current_epoch < (3*self.step_size+3):
-            if self.trainer.is_last_batch:
-                sch.step()
                 
         return {"loss": loss, 'log': tensorboard_logs}
     
@@ -165,7 +162,8 @@ class RootNet(pl.LightningModule):
             print('max_violations: ', ((torch.norm(mus, dim=2)) ** 2).max(), 'temp_constraints: ', temp_constraints)
             raise Exception("Initialization lead to power constraints violation!") 
         u = ((self.eta/(self.eta+1))*utility + (1/(self.eta+1))*(1/2)*(torch.log(temp_constraints).sum(dim=-1))).mean()
-        # u = utility.mean()
+        # u = ((1/(self.eta+1))*(1/2)*(torch.log(temp_constraints).sum(dim=-1))).mean()
+        # u = (self.eta/(self.eta+1))*utility.mean()
         loss = -u
 
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
@@ -173,7 +171,16 @@ class RootNet(pl.LightningModule):
         return {"val_loss": loss}
 
     def training_epoch_end(self, outputs):
-        print(torch.nn.functional.hardsigmoid(self.multiplication_factor_in).mean().item()*self.N_inv_root, torch.nn.functional.hardsigmoid(self.slack_variable_in).mean().item()*self.N_inv_root)
+        if self.VARYING_STEP_SIZE:
+            sch = self.lr_schedulers()
+        if self.current_epoch % 1 == 0 and self.current_epoch>0:
+            self.eta = min(self.eta*10, 1e8)
+            
+            if self.VARYING_STEP_SIZE and self.current_epoch < 7:
+                sch.step()
+        
+        print(torch.nn.functional.hardsigmoid(self.scale_factor_in).item(), self.eta, self.learning_rate if not self.VARYING_STEP_SIZE else sch.get_last_lr())
+
         
 
     def backward(self, loss, *args, **kwargs):

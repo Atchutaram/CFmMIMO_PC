@@ -206,6 +206,7 @@ class EncoderLayer(nn.Module):
         x = x + self.dropout_2(self.ff(x))
         x = self.norm_2(x)
         return x
+    
 
 class PositionalEncoder(nn.Module):
     def __init__(self, M, max_seq_len = 80):
@@ -231,3 +232,6 @@ class PositionalEncoder(nn.Module):
         seq_len = x.shape[1]
         x = x + Variable(self.pe[:,:seq_len], requires_grad=False).to(device=x.device)
         return x
+
+def inv_sigmoid(x):
+    return 6*x-3

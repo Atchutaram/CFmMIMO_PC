@@ -45,7 +45,13 @@ Do you want to overwrite the data folder [y/n]? """)
                 if response == 'n':
                     print(f'Data folder retain cannot be performed! Either set the set the --samples option to {old_number_of_samples} or --retain option to 0.')
                     sys.exit()
-
+    
+    import random
+    random.seed()
+    time.sleep(random.uniform(1, 20))
+    if os.path.exists(folder) and force_retain:
+        return
+    
     delete_folder(folder)
     
     os.mkdir(folder)

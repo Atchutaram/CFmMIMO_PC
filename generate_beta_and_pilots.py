@@ -69,11 +69,11 @@ def data_gen(simulation_parameters, system_parameters, sample_id, validation_dat
     betas = large_scale_fading_computing(L, d_0, d_1, log_d_0, log_d_1, sigma_sh, d_mat, device)
 
     if simulation_parameters.orthogonality_flag:
-        pilot_sequence = torch.arange(0, system_parameters.number_of_users)
+        pilot_sequence = torch.arange(0, number_of_users)
     else:
         if not NoSeedFlag:
             torch.seed()
-        pilot_sequence = torch.randint(0, system_parameters.T_p, [system_parameters.number_of_users])
+        pilot_sequence = torch.randint(0, system_parameters.T_p, [number_of_users])
     
 
     # Save the RX data and original channel matrix.

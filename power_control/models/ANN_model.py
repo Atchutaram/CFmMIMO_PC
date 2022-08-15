@@ -93,6 +93,7 @@ class NeuralNet(RootNet):
         dropout = 0.5
         heads = 5
 
+        self.norm = Norm(M)
         self.layer1 = EncoderLayer(M, heads=heads, dropout=dropout)
         self.layer2 = EncoderLayer(M, heads=heads, dropout=dropout)
         self.layer3 = EncoderLayer(M, heads=heads, dropout=dropout)
@@ -109,6 +110,8 @@ class NeuralNet(RootNet):
         mask = torch.unsqueeze(phi_cross_mat**2, dim=1)
         x = x.transpose(1,2).contiguous()
         
+        x = self.norm(x)
+        
         x = self.layer1(x, mask=mask)
         
         x = self.layer2(x, mask=mask)
@@ -121,5 +124,5 @@ class NeuralNet(RootNet):
         
         x = self.layer6(x, mask=mask)
         x = torch.nn.functional.hardsigmoid(x)
-
-        return x.transpose(1,2).contiguous()*torch.nn.functional.hardsigmoid(self.multiplication_factor_in).view(1,-1,1)*self.N_inv_root
+        
+        return x.transpose(1,2).contiguous()*torch.nn.functional.hardsigmoid(self.scale_factor_in)*self.N_inv_root
