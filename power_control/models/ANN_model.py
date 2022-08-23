@@ -125,4 +125,7 @@ class NeuralNet(RootNet):
         x = self.layer6(x, mask=mask)
         x = torch.nn.functional.hardsigmoid(x)
         
-        return x.transpose(1,2).contiguous()*torch.nn.functional.hardsigmoid(self.scale_factor_in)*self.N_inv_root
+        sf = torch.nn.functional.hardsigmoid(self.scale_factor_in)
+        mf = (1-self.init_mf)*sf + self.init_mf
+        
+        return x.transpose(1,2).contiguous()*mf*self.N_inv_root

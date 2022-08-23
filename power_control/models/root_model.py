@@ -90,15 +90,16 @@ class RootNet(pl.LightningModule):
         self.N = system_parameters.number_of_antennas
         self.N_inv_root = 1/math.sqrt(self.N)
         self.K_inv_root = 1/math.sqrt(system_parameters.number_of_users)
-        slack_sqr = 1e-4
-        slack_const = inv_sigmoid(math.sqrt(slack_sqr))
+        slack_sqr = 25e-2
+        slack_const = inv_sigmoid(self.K_inv_root*math.sqrt(slack_sqr))
         scale_const = inv_sigmoid(self.K_inv_root*math.sqrt((1-slack_sqr)))
+        self.init_mf = self.K_inv_root*math.sqrt((1-slack_sqr))
         
         slack_variable_in = torch.ones((system_parameters.number_of_access_points, ), dtype=torch.float32)*slack_const
         # slack_variable_in = torch.tensor((slack_const,), dtype=torch.float32)
         self.register_parameter("slack_variable_in",  nn.parameter.Parameter(slack_variable_in))
 
-        scale_factor_in = torch.ones((1, ), dtype=torch.float32)*scale_const
+        scale_factor_in = torch.ones((1, ), dtype=torch.float32)*-2.8
         self.register_parameter("scale_factor_in",  nn.parameter.Parameter(scale_factor_in))
         
         self.system_parameters = system_parameters
@@ -137,6 +138,7 @@ class RootNet(pl.LightningModule):
             u = ((self.eta/(self.eta+1))*utility + (1/(self.eta+1))*(1/2)*(torch.log(temp_constraints).sum(dim=-1))).mean()
             # u = ((1/(self.eta+1))*(1/2)*(torch.log(temp_constraints).sum(dim=-1))).mean()
             # u = (self.eta/(self.eta+1))*utility.mean()
+            # u = utility.mean()
             loss = -u # loss is negative of the utility
         
         tensorboard_logs = {'train_loss': loss}
@@ -164,6 +166,7 @@ class RootNet(pl.LightningModule):
         u = ((self.eta/(self.eta+1))*utility + (1/(self.eta+1))*(1/2)*(torch.log(temp_constraints).sum(dim=-1))).mean()
         # u = ((1/(self.eta+1))*(1/2)*(torch.log(temp_constraints).sum(dim=-1))).mean()
         # u = (self.eta/(self.eta+1))*utility.mean()
+        # u = utility.mean()
         loss = -u
 
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True)

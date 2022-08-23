@@ -132,4 +132,6 @@ class NeuralNet(RootNet):
         output = self.output_layer(output)
         output = torch.nn.functional.hardsigmoid(output)
         output = output.view(self.output_shape)
-        return output*self.N_inv_root*torch.nn.functional.hardsigmoid(self.scale_factor_in)*self.N_inv_root
+        sf = torch.nn.functional.hardsigmoid(self.scale_factor_in)
+        mf = (1-self.init_mf)*sf + self.init_mf
+        return output*mf*self.N_inv_root
