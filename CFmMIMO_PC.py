@@ -159,13 +159,14 @@ from utils.utils import handle_deletion_and_creation
 cwd = os.getcwd()
 if host == 1:
     # This use case is intended only for the authors of this work.
+    current_folder_for_triton = cwd.split('/')[-1]
     root_base = os.path.join('/tmp', 'hsperfdata_kochark1')
     handle_deletion_and_creation(root_base, force_retain=True)
 
-    root = os.path.join('/tmp', 'hsperfdata_kochark1', 'CFmMIMO_PC')
+    root = os.path.join('/tmp', 'hsperfdata_kochark1', current_folder_for_triton)
     handle_deletion_and_creation(root, force_retain=True)
 
-    triton_results_base = os.path.join('/scratch', 'work', 'kochark1', 'CFmMIMO_PC')
+    triton_results_base = os.path.join('/scratch', 'work', 'kochark1', current_folder_for_triton)
     handle_deletion_and_creation(triton_results_base, force_retain=True)
 
 else:
