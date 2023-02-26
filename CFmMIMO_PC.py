@@ -3,6 +3,8 @@ import argparse
 import os
 from parameters.sim_params import OperatingModes
 
+user_id = 'kochark1'
+
 default_number_of_samples = 400000
 default_number_of_samples = 100000
 default_number_of_samples = 100
@@ -160,13 +162,13 @@ cwd = os.getcwd()
 if host == 1:
     # This use case is intended only for the authors of this work.
     current_folder_for_triton = cwd.split('/')[-1]
-    root_base = os.path.join('/tmp', 'hsperfdata_kochark1')
+    root_base = os.path.join('/tmp', f'hsperfdata_{user_id}')
     handle_deletion_and_creation(root_base, force_retain=True)
 
-    root = os.path.join('/tmp', 'hsperfdata_kochark1', current_folder_for_triton)
+    root = os.path.join('/tmp', f'hsperfdata_{user_id}', current_folder_for_triton)
     handle_deletion_and_creation(root, force_retain=True)
 
-    triton_results_base = os.path.join('/scratch', 'work', 'kochark1', current_folder_for_triton)
+    triton_results_base = os.path.join('/scratch', 'work', user_id, current_folder_for_triton)
     handle_deletion_and_creation(triton_results_base, force_retain=True)
 
 else:
