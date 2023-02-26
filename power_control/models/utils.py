@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 
-from utils.utils import find_the_latest_file
+from utils.utils import find_the_latest_file, find_the_latest_folder
 
 
 find_import_path = lambda model_name : f"power_control.models.{model_name}_model"
@@ -65,20 +65,26 @@ def load_the_latest_model_and_params_if_exists(model_name, model_folder, system_
         
     model = module.NeuralNet(system_parameters, grads)
     model.apply(initialize_weights)
-    model_file = find_the_latest_file(model_folder)
+    if is_testing:
+        model_folder = os.path.join(model_folder, find_the_latest_folder(model_folder), 'checkpoints')
+        model_file = find_the_latest_file(model_folder)
     
-    if model_file is not None:
-        model.load_state_dict(torch.load(os.path.join(model_folder, model_file)))
-    elif is_testing:
-        from sys import exit
-        print(model_folder)
-        print('Train the neural network before testing!')
-        exit()
-    
-    if not is_testing:
+        if model_file is not None:
+            model_file_path = os.path.join(model_folder, model_file)
+            print('loading from: ', model_file_path)
+            model = module.NeuralNet.load_from_checkpoint(model_file_path, system_parameters=system_parameters, grads=grads)
+            if model_name == 'ANN':
+                print(type(model))
+                print(model.scale_factor_in)
+        elif is_testing:
+            from sys import exit
+            print(model_folder)
+            print('Train the neural network before testing!')
+            exit()
+    else:
         model.set_folder(model_folder)
     
-    print(model_file)
+    # print(model_file)
     return model
 
 def get_nu_tensor(betas, system_parameters):

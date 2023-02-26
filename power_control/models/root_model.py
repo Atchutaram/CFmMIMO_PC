@@ -83,6 +83,7 @@ class CommonParameters:
 class RootNet(pl.LightningModule):
     def __init__(self, system_parameters, grads):
         super(RootNet, self).__init__()
+        self.save_hyperparameters()
         
         self.relu = nn.ReLU()
         torch.seed()
@@ -119,7 +120,7 @@ class RootNet(pl.LightningModule):
 
         opt.zero_grad()
         slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*self.N_inv_root
-        mus = self([beta_torch, phi_cross_mat])
+        mus = self([beta_torch, phi_cross_mat]) # Forward pass
 
         with torch.no_grad():
             [mus_grads, grad_wrt_slack, utility] = self.grads(beta_original, mus, self.eta, slack_variable, self.device, self.system_parameters, phi_cross_mat)
@@ -216,13 +217,13 @@ class RootNet(pl.LightningModule):
         return val_loader
     
     
-    def save(self):
-        date_str = str(datetime.datetime.now().date()).replace(':', '_').replace('.', '_').replace('-', '_')
-        time_str = str(datetime.datetime.now().time()).replace(':', '_').replace('.', '_').replace('-', '_')
-        model_file_name = f'model_{date_str}_{time_str}.pth'
+    # def save(self):
+    #     date_str = str(datetime.datetime.now().date()).replace(':', '_').replace('.', '_').replace('-', '_')
+    #     time_str = str(datetime.datetime.now().time()).replace(':', '_').replace('.', '_').replace('-', '_')
+    #     model_file_name = f'model_{date_str}_{time_str}.pth'
 
-        model_path = os.path.join(self.model_folder, model_file_name)
-        torch.save(self.state_dict(), model_path)
+    #     model_path = os.path.join(self.model_folder, model_file_name)
+    #     torch.save(self.state_dict(), model_path)
         
-        print(model_path)
-        print(f'{self.name} training Done!')
+    #     print(model_path)
+    #     print(f'{self.name} training Done!')

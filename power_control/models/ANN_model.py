@@ -91,7 +91,7 @@ class NeuralNet(RootNet):
         
         
         dropout = 0.5
-        heads = 5
+        heads = 20
 
         self.norm = Norm(M)
         self.layer1 = EncoderLayer(M, heads=heads, dropout=dropout)
@@ -127,5 +127,7 @@ class NeuralNet(RootNet):
         
         sf = torch.nn.functional.hardsigmoid(self.scale_factor_in)
         mf = (1-self.init_mf)*sf + self.init_mf
-        
-        return x.transpose(1,2).contiguous()*mf*self.N_inv_root
+
+        y = x.transpose(1,2).contiguous()*mf*self.N_inv_root
+        # tensor_max_min_print(y, 'Output:')
+        return y

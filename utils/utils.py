@@ -92,6 +92,15 @@ def find_the_latest_file(model_folder):
             file = None
     return file
 
+def find_the_latest_folder(parent_folder):
+    import glob
+    latest_folder = max(glob.glob(os.path.join(parent_folder, '*/')), key=os.path.getmtime)
+    if latest_folder:
+        return latest_folder
+    else:
+        print(parent_folder, latest_folder)
+        raise Exception("Train the neural network before testing!")
+
 def tensor_max_min_print(tensor, text, exit_flag=False):
     print(f'Min of {text}: {tensor.min().detach().item()} Max of {text}: {tensor.max().detach().item()} \n')
     if exit_flag:

@@ -190,7 +190,7 @@ if __name__ == '__main__':
         inp_number_of_users = 4
         inp_access_point_density = 2000
         
-        models_list = ['FCN', 'ANN',]
+        models_list = ['ANN',]
 
     elif simulation_parameters.scenario==1:
         coverage_area = 0.1  # in sq.Km
@@ -199,7 +199,7 @@ if __name__ == '__main__':
         # models_list = ['TDN', 'GFT', , 'FCN', 'ANN']
 
         if simulation_parameters.orthogonality_flag:
-            models_list = ['FCN', 'ANN',]
+            models_list = ['ANN',]
         else:
             models_list = ['ANN',]
         
@@ -217,6 +217,7 @@ if __name__ == '__main__':
     
     system_parameters = SystemParameters(simulation_parameters, coverage_area, inp_number_of_users, inp_access_point_density, models_list)
     
+    # Execution starts here.-----------------------------------------------------------------------------
     # Generating train & validation or test data. Do not overwrite the exiting data.
     if not os.listdir(simulation_parameters.data_folder):
         time_then = time.perf_counter()

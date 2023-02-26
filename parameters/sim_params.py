@@ -46,7 +46,7 @@ class SimulationParameters:
         if self.operation_mode == OperatingModes.TESTING:
             handle_deletion_and_creation(self.results_base, force_retain=True)
             
-        self.model_folder_path = os.path.join(self.results_base, self.model_folder)
+        self.model_folder_path = self.results_base
             
         self.data_folder = os.path.join(self.base_folder_path, "betas")
         self.validation_data_folder = os.path.join(self.base_folder_path, "betas_val")
@@ -96,4 +96,4 @@ class SimulationParameters:
                     print(subfolder_path)
                     print('Train the neural network before testing!')
                     sys.exit()
-                os.makedirs(subfolder_path)         
+        #         os.makedirs(subfolder_path)         
