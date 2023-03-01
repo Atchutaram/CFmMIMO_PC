@@ -1,19 +1,22 @@
 import os
 import torch
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 # TODO:
 #   Check file existance 
 #   Count n of samples
+#   Reuse _main_ code variables and call different training samples sequentially
 
 # temporary hardcoded
 cwd = os.getcwd() + "\simID_2\data_logs_training\\betas"
-max_index = 10
+max_index = 100
 matrix_sum = 0
 betas = []
 
-# read all betas to list
+# read all betas to the list
 for f_index in range(max_index):
     f_name = f'betas_sample{f_index}.pt'
     beta_file_path = os.path.join(cwd, f_name)
@@ -26,3 +29,6 @@ for i in range(max_index):
     
 corr_matrix = matrix_sum / max_index
 
+plt.figure()
+sns.heatmap(corr_matrix)    
+plt.show()

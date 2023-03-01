@@ -3,7 +3,7 @@ import argparse
 import os
 from parameters.sim_params import OperatingModes
 
-user_id = 'kochark1'
+user_id = 'palshia1'
 
 default_number_of_samples = 400000
 default_number_of_samples = 100000
