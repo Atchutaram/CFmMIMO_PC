@@ -1,6 +1,7 @@
 import time
 import argparse
 import os
+import pwd
 from parameters.sim_params import OperatingModes
 
 default_number_of_samples = 400000
@@ -159,11 +160,11 @@ from utils.utils import handle_deletion_and_creation
 cwd = os.getcwd()
 if host == 1:
     # This use case is intended only for the authors of this work.
-    user_id = os.getlogin()
+    user_id = pwd.getpwuid(os.getuid())[0]
     current_folder_for_triton = cwd.split('/')[-1]
     root_base = os.path.join('/tmp', f'hsperfdata_{user_id}')
     handle_deletion_and_creation(root_base, force_retain=True)
-
+    
     root = os.path.join('/tmp', f'hsperfdata_{user_id}', current_folder_for_triton)
     handle_deletion_and_creation(root, force_retain=True)
 
