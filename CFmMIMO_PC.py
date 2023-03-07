@@ -164,7 +164,7 @@ if host == 1:
     current_folder_for_triton = cwd.split('/')[-1]
     root_base = os.path.join('/tmp', f'hsperfdata_{user_id}')
     handle_deletion_and_creation(root_base, force_retain=True)
-    
+
     root = os.path.join('/tmp', f'hsperfdata_{user_id}', current_folder_for_triton)
     handle_deletion_and_creation(root, force_retain=True)
 

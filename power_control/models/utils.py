@@ -96,7 +96,7 @@ def get_nu_tensor(betas, system_parameters):
 
     return nu_mat
     
-def attention(query, key, value, d_k, mask=None, dropout=None):
+def attention(query, key, value, d_k, mask=None, dropout=None, no_score= False):
 
     # query, key, value tensor are of dimension B x h x K x d_k
     # mask tensor is of dimension K x K
@@ -111,11 +111,15 @@ def attention(query, key, value, d_k, mask=None, dropout=None):
     if dropout is not None:
         scores = dropout(scores)
         
-    output = scores @ value
+    if no_score:
+        output = value
+    else:
+        output = scores @ value
+    
     return output  # dimension B x h x K x d_k
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, heads, M, dropout = 0.1):
+    def __init__(self, heads, M, dropout = 0.1, no_score=False):
         super().__init__()
         
         self.M = M
@@ -132,6 +136,7 @@ class MultiHeadAttention(nn.Module):
         self.k_linear = nn.Linear(M, M)
         self.dropout = nn.Dropout(dropout)
         self.out = nn.Linear(M, M)
+        self.no_score = no_score
     
     def forward(self, x, mask=None):
         
@@ -151,7 +156,7 @@ class MultiHeadAttention(nn.Module):
         key = key.transpose(1,2)
         value = value.transpose(1,2)
 
-        scores = attention(query, key, value, self.d_k, mask, self.dropout)
+        scores = attention(query, key, value, self.d_k, mask, self.dropout, self.no_score)
 
         # concatenate heads and put through final linear layer
         concat = scores.transpose(1,2).contiguous().view(B, -1, self.M)
@@ -162,13 +167,21 @@ class MultiHeadAttention(nn.Module):
 
 class FeedForward(nn.Module):
 
-    def __init__(self, M, dropout = 0.1):
+    def __init__(self, M, dropout = 0.1, last=False):
         super().__init__() 
+        
+        if last:
+            dd = int(4)
+        elif dropout<(1-1e-1):
+            dd = int(4 / (1-dropout))*M
+        else:
+            dd = int(4)*M
 
         if 0 <= dropout <= (1-1e-1):
-            d_mid = int(4 / (1-dropout)) * M
+            # d_mid = int(4 / (1-dropout)) * M
+            d_mid = dd
         else:
-            d_mid = M
+            d_mid = dd
 
         self.linear_1 = nn.Linear(M, d_mid)
         self.dropout = nn.Dropout(dropout)
@@ -197,12 +210,12 @@ class Norm(nn.Module):
 
 class EncoderLayer(nn.Module):
     
-    def __init__(self, M, heads, dropout=0.1):
+    def __init__(self, M, heads, dropout=0.1, no_score=False, last=False):
         super().__init__()
         self.norm_1 = Norm(M)
         self.norm_2 = Norm(M)
-        self.attn = MultiHeadAttention(heads, M, dropout)
-        self.ff = FeedForward(M, dropout)
+        self.attn = MultiHeadAttention(heads, M, dropout, no_score)
+        self.ff = FeedForward(M, dropout, last)
         self.dropout_1 = nn.Dropout(dropout)
         self.dropout_2 = nn.Dropout(dropout)
         

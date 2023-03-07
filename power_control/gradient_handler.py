@@ -55,23 +55,12 @@ def grads(betas_in, mus_in, eta, slack_variable, device, system_parameters, phi_
         v_mat = compute_vmat(betas_in, system_parameters.zeta_p, system_parameters.T_p, phi_cross_mat)  # Eq (5) b X M X K
         [mus_out, SE] = grad_f(betas_in, mus_in, system_parameters.number_of_antennas, system_parameters.zeta_d, system_parameters.T_p, system_parameters.T_c, phi_cross_mat, v_mat, tau, device)  # [b X M X K, b X K]
         
-        temp_den = (1 / system_parameters.number_of_antennas - (torch.norm(mus_in, dim=2)) ** 2 - slack_variable ** 2)
-
-        if torch.any(temp_den<0):
-            if eta > epsilon:
-                print('Increase model.eta or reduce step size')
-                print('num_of_violations: ', (temp_den<0).sum())
-                print('max_violations: ', ((torch.norm(mus_in, dim=2)) ** 2).max(), 'slack_variable: ', slack_variable.mean())
-                raise Exception("Initialization lead to power constraints violation!") 
-        
-        temp = torch.unsqueeze(1/temp_den, -1)  # b X M X 1
-
-        if eta > epsilon:
-            mus_temp = -(1/(eta+1)) * torch.unsqueeze((mus_in * temp).sum(dim=1), 1)  # b X 1 X K
-            grad_wrt_slack = - (1/(eta+1)) * slack_variable * temp.sum(dim=1)  # b X 1
-            mus_out = eta/(eta+1)*mus_out + mus_temp  # results in b X M X K
+        if (1/(eta+1)) > epsilon:
+            mus_temp = -(1/(eta+1)) * torch.unsqueeze((mus_in).sum(dim=1), 1)  # b X 1 X K
+            grad_wrt_slack = 0
+            mus_out = eta/(eta+1)*mus_out*100 + mus_temp  # results in b X M X K
         else:
-            grad_wrt_slack = 0 * slack_variable * temp.sum(dim=1)  # b X 1
+            grad_wrt_slack = 0
 
         mus_out, grad_wrt_slack = [-1 * mus_out, -1 * grad_wrt_slack]  # do not merge with earlier equation; keep it different for readability.
         utility = compute_smooth_min(SE, tau)  # b X 1

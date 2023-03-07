@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import os
 from sklearn.preprocessing import StandardScaler
 
@@ -6,6 +7,7 @@ from sklearn.preprocessing import StandardScaler
 from .root_model import RootDataset, CommonParameters, RootNet
 from .utils import EncoderLayer, Norm
 from utils.utils import tensor_max_min_print
+from power_control.testing import project_to_s
 
 
 MODEL_NAME = 'ANN'
@@ -90,27 +92,35 @@ class NeuralNet(RootNet):
         M = HyperParameters.M
         
         
-        dropout = 0.5
-        heads = 20
+        dropout = 0.1
+        heads = 5
+        M2 = 40*heads
 
-        self.norm = Norm(M)
-        self.layer1 = EncoderLayer(M, heads=heads, dropout=dropout)
-        self.layer2 = EncoderLayer(M, heads=heads, dropout=dropout)
-        self.layer3 = EncoderLayer(M, heads=heads, dropout=dropout)
-        self.layer4 = EncoderLayer(M, heads=heads, dropout=dropout)
-        self.layer5 = EncoderLayer(M, heads=heads, dropout=dropout)
-        self.layer6 = EncoderLayer(M, heads=heads, dropout=dropout)
-
+        self.norm1 = Norm(M)
+        self.shrink = nn.Linear(M, M2)
+        self.norm2 = Norm(M2)
+        self.layer1 = EncoderLayer(M2, heads=heads, dropout=dropout)
+        self.layer2 = EncoderLayer(M2, heads=heads, dropout=dropout)
+        self.layer3 = EncoderLayer(M2, heads=heads, dropout=dropout)
+        self.layer4 = EncoderLayer(M2, heads=heads, dropout=dropout)
+        self.layer5 = EncoderLayer(M2, heads=heads, dropout=dropout)
+        self.layer6 = EncoderLayer(M2, heads=heads, dropout=dropout)
+        self.expand = nn.Linear(M2, M)
+        self.norm3 = Norm(M)
 
         self.name = MODEL_NAME
 
 
-    def forward(self, x):
-        x, phi_cross_mat = x
+    def forward(self, input):
+        x, phi_cross_mat = input
         mask = torch.unsqueeze(phi_cross_mat**2, dim=1)
         x = x.transpose(1,2).contiguous()
         
-        x = self.norm(x)
+        x = self.norm1(x)
+        
+        x = self.shrink(x)
+        
+        x = self.norm2(x)
         
         x = self.layer1(x, mask=mask)
         
@@ -123,11 +133,17 @@ class NeuralNet(RootNet):
         x = self.layer5(x, mask=mask)
         
         x = self.layer6(x, mask=mask)
-        x = torch.nn.functional.hardsigmoid(x)
         
-        sf = torch.nn.functional.hardsigmoid(self.scale_factor_in)
-        mf = (1-self.init_mf)*sf + self.init_mf
-
-        y = x.transpose(1,2).contiguous()*mf*self.N_inv_root
-        # tensor_max_min_print(y, 'Output:')
-        return y
+        x = self.expand(x)
+        
+        x = self.norm3(x)
+        
+        x = (x.transpose(1,2).contiguous()+6)
+        
+        x = torch.nn.functional.softplus(x, beta = 2)
+        
+        y = torch.exp(-x)
+        
+        output = project_to_s(y, self.N_inv_root)
+        
+        return output

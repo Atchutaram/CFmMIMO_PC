@@ -13,6 +13,8 @@ import math
 from .utils import inv_sigmoid
 
 from utils.utils import tensor_max_min_print
+from power_control.utils import compute_vmat
+from power_control.gradient_handler import compute_num_k
 
 
 class Mode(Enum):
@@ -58,10 +60,10 @@ class CommonParameters:
     n_samples = 1
     batch_size = 1
 
-    learning_rate =1e-3
-    gamma = 0.7
+    learning_rate =3e-4
+    gamma = 0.75
     step_size = 1
-    num_epochs = 8
+    num_epochs = 4*4*2
     eta = 1
     VARYING_STEP_SIZE = True
 
@@ -95,13 +97,12 @@ class RootNet(pl.LightningModule):
         slack_const = inv_sigmoid(self.K_inv_root*math.sqrt(slack_sqr))
         scale_const = inv_sigmoid(self.K_inv_root*math.sqrt((1-slack_sqr)))
         self.init_mf = self.K_inv_root*math.sqrt((1-slack_sqr))
-        
-        slack_variable_in = torch.ones((system_parameters.number_of_access_points, ), dtype=torch.float32)*slack_const
-        # slack_variable_in = torch.tensor((slack_const,), dtype=torch.float32)
-        self.register_parameter("slack_variable_in",  nn.parameter.Parameter(slack_variable_in))
 
-        scale_factor_in = torch.ones((1, ), dtype=torch.float32)*-2.8
+        scale_factor_in = torch.ones((1, ), dtype=torch.float32)
         self.register_parameter("scale_factor_in",  nn.parameter.Parameter(scale_factor_in))
+
+        shift_factor_in = torch.ones((1, ), dtype=torch.float32)*-5
+        self.register_parameter("shift_factor_in",  nn.parameter.Parameter(shift_factor_in))
         
         self.system_parameters = system_parameters
 
@@ -119,27 +120,29 @@ class RootNet(pl.LightningModule):
         phi_cross_mat, beta_torch, beta_original = batch
 
         opt.zero_grad()
-        slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*self.N_inv_root
-        mus = self([beta_torch, phi_cross_mat]) # Forward pass
+        mus = self([beta_torch, phi_cross_mat])
 
         with torch.no_grad():
-            [mus_grads, grad_wrt_slack, utility] = self.grads(beta_original, mus, self.eta, slack_variable, self.device, self.system_parameters, phi_cross_mat)
+            try:
+                [mus_grads, grad_wrt_slack, utility] = self.grads(beta_original, mus, self.eta, 0, self.device, self.system_parameters, phi_cross_mat)
+            except:
+                print('except: ', self.scale_factor_in, self.shift_factor_in)
+                from sys import exit
+                exit()
         
 
-        self.manual_backward(mus, None, gradient=[slack_variable, mus_grads, grad_wrt_slack])
+        self.manual_backward(mus, None, gradient=[mus_grads, grad_wrt_slack])
         opt.step()
         
         with torch.no_grad():
-            temp_constraints = (1 / self.system_parameters.number_of_antennas - (torch.norm(mus, dim=2)) ** 2 - slack_variable ** 2)
-
-            if torch.any(temp_constraints<0):
-                print('Training constraints failed!')
+            
+            u = ((self.eta/(self.eta+1))*utility - (1/(self.eta+1))*(1/2)*(((torch.norm(mus, dim=2)) ** 2).sum(dim=-1))).mean()
+            if torch.isnan(u).item() or torch.isinf(u).item():
+                print(f'u is: {u}, and the main utility is {utility}')
+                print(f'mu min is: {mus.min().item()}')
+                from sys import exit
                 exit()
             
-            u = ((self.eta/(self.eta+1))*utility + (1/(self.eta+1))*(1/2)*(torch.log(temp_constraints).sum(dim=-1))).mean()
-            # u = ((1/(self.eta+1))*(1/2)*(torch.log(temp_constraints).sum(dim=-1))).mean()
-            # u = (self.eta/(self.eta+1))*utility.mean()
-            # u = utility.mean()
             loss = -u # loss is negative of the utility
         
         tensorboard_logs = {'train_loss': loss}
@@ -151,20 +154,25 @@ class RootNet(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         phi_cross_mat, beta_torch, beta_original = batch
 
-        slack_variable = torch.nn.functional.hardsigmoid(self.slack_variable_in)*self.N_inv_root
         mus = self([beta_torch, phi_cross_mat])
 
-        [_, _, utility] = self.grads(beta_original, mus, self.eta, slack_variable, self.device, self.system_parameters, phi_cross_mat) # Replace with direct utility computation        
+        [_, _, utility] = self.grads(beta_original, mus, self.eta, 0, self.device, self.system_parameters, phi_cross_mat) # Replace with direct utility computation        
         
         
-        temp_constraints = (1 / self.system_parameters.number_of_antennas - (torch.norm(mus, dim=2)) ** 2 - slack_variable ** 2)
-
-        if torch.any(temp_constraints<0):
-            print('Training constraints failed!')
-            print('num_of_violations: ', (temp_constraints<0).sum())
-            print('max_violations: ', ((torch.norm(mus, dim=2)) ** 2).max(), 'temp_constraints: ', temp_constraints)
-            raise Exception("Initialization lead to power constraints violation!") 
-        u = ((self.eta/(self.eta+1))*utility + (1/(self.eta+1))*(1/2)*(torch.log(temp_constraints).sum(dim=-1))).mean()
+        u = ((self.eta/(self.eta+1))*utility - (1/(self.eta+1))*(1/2)*(((torch.norm(mus, dim=2)) ** 2).sum(dim=-1))).mean()
+        if batch_idx == 0:
+            K = beta_original.shape[-1]
+            SE = torch.zeros((1, K), device=self.device, requires_grad=False, dtype=torch.float32)
+            v_mat = compute_vmat(beta_original, self.system_parameters.zeta_p, self.system_parameters.T_p, phi_cross_mat)  # Eq (5) b X M X K
+            # print(beta_original.shape, mus.shape, beta_original[0:1, :, :].shape, mus[0:1, :, :].shape)
+            for k in range(K):
+                _, SE[:,k] = compute_num_k(beta_original[0:1, :, :], mus[0:1, :, :], self.system_parameters.number_of_antennas, self.system_parameters.zeta_d, self.system_parameters.T_p, self.system_parameters.T_c, v_mat[0:1, :, :], phi_cross_mat[0:1, :, :], k, self.system_parameters.tau)
+            print(f'\nSE {SE}')
+            aa = (torch.norm(mus, dim=2)) ** 2
+            print(f'\ntxpower per AP {aa[0]}')
+            print(f'\nmax txpower per AP {aa.max()}\n')
+            
+            
         # u = ((1/(self.eta+1))*(1/2)*(torch.log(temp_constraints).sum(dim=-1))).mean()
         # u = (self.eta/(self.eta+1))*utility.mean()
         # u = utility.mean()
@@ -175,28 +183,27 @@ class RootNet(pl.LightningModule):
         return {"val_loss": loss}
 
     def training_epoch_end(self, outputs):
+        skip_length = 1
         if self.VARYING_STEP_SIZE:
             sch = self.lr_schedulers()
-        if self.current_epoch % 1 == 0 and self.current_epoch>0:
-            self.eta = min(self.eta*10, 1e8)
+        if self.current_epoch>=0 and (self.current_epoch % skip_length == 0):
+            self.eta = min(self.eta*10, 1e6)
+            #self.eta = self.eta*10
             
-            if self.VARYING_STEP_SIZE and self.current_epoch < 7:
+            if self.VARYING_STEP_SIZE and 7<=self.current_epoch<=10:
                 sch.step()
         
-        print(torch.nn.functional.hardsigmoid(self.scale_factor_in).item(), self.eta, self.learning_rate if not self.VARYING_STEP_SIZE else sch.get_last_lr())
+        print('\nEpoch end', self.eta, self.learning_rate if not self.VARYING_STEP_SIZE else sch.get_last_lr())
 
         
 
     def backward(self, loss, *args, **kwargs):
         mus=loss
 
-        [slack_variable, mus_grads, grad_wrt_slack_batch] = kwargs['gradient']
+        [mus_grads, grad_wrt_slack_batch] = kwargs['gradient']
         B = mus_grads.shape[0]
         
         mus.backward((1/B)*mus_grads)
-        for grad_wrt_slack in grad_wrt_slack_batch:
-            slack_variable.backward((1/B)*grad_wrt_slack, retain_graph=True)
-        # slack_variable.backward(grad_wrt_slack_batch.mean(dim=0))
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate) 

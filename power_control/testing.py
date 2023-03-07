@@ -12,10 +12,11 @@ from utils.visualization import performance_plotter
 
 def project_to_s(y, const):
     # Eq (29)
+    epsilon = 1e-8
     y_plus = y * (y > 0)
     y_norm = torch.unsqueeze(torch.sqrt(torch.einsum('bmk, bmk -> bm', y_plus, y_plus)), -1)
     y_max = torch.clamp(y_norm, min=const)
-    mus = const * y_plus / y_max
+    mus = const * y_plus / (y_max+epsilon)
     return mus
 
 def epa(v_mat, device):
