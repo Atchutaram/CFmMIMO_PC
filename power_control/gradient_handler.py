@@ -58,7 +58,7 @@ def grads(betas_in, mus_in, eta, slack_variable, device, system_parameters, phi_
         if (1/(eta+1)) > epsilon:
             mus_temp = -(1/(eta+1)) * torch.unsqueeze((mus_in).sum(dim=1), 1)  # b X 1 X K
             grad_wrt_slack = 0
-            mus_out = eta/(eta+1)*mus_out*100 + mus_temp  # results in b X M X K
+            mus_out = eta/(eta+1)*mus_out + mus_temp  # results in b X M X K
         else:
             grad_wrt_slack = 0
 
