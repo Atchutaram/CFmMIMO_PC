@@ -38,7 +38,6 @@ class CommonParameters:
     n_samples = 1
     batch_size = 16
     num_epochs = 4*4*2
-    num_epochs = 2
 
     learning_rate =3e-4
     
@@ -56,7 +55,6 @@ class CommonParameters:
         cls.n_samples = simulation_parameters.number_of_samples
         cls.training_data_path = simulation_parameters.data_folder
         cls.validation_data_path = simulation_parameters.validation_data_folder
-        print('Atchut', cls.validation_data_path)
         cls.scenario = simulation_parameters.scenario
         cls.dropout = 0
         
@@ -112,7 +110,7 @@ class RootNet(pl.LightningModule):
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         return {"val_loss": loss}
 
-    def training_epoch_end(self, outputs):
+    def on_train_epoch_end(self, *args, **kwargs):
         # We are using this method to manipulate the learning rate according to our needs
         skip_length = 1
         LL=7

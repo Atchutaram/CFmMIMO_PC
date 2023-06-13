@@ -24,10 +24,10 @@ class HyperParameters(CommonParameters):
         cls.output_size = cls.M * cls.K
         MK = 1 * cls.M * cls.K
         
-        if (simulation_parameters.operation_mode == 0):
-            cls.hidden_size = int((1/(1-cls.dropout))*MK)
+        if (simulation_parameters.scenario == 0):
+            cls.hidden_size = int((1/(1-cls.dropout))*MK*4)
         else:
-            cls.hidden_size = int((1/(1-cls.dropout))*MK)*4
+            cls.hidden_size = int((1/(1-cls.dropout))*MK/40)
 
         cls.output_shape = (-1, cls.M, cls.K)
         
@@ -66,9 +66,6 @@ class NeuralNet(RootNet):
             Norm(self.hidden_size),
             nn.ReLU(),
             nn.Dropout(p=self.dropout),
-            self.hidden(),
-            self.hidden(),
-            self.hidden(),
             self.hidden(),
             nn.Linear(self.hidden_size, self.output_size),
             Norm(self.output_size),

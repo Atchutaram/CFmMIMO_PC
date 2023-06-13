@@ -33,7 +33,13 @@ class SimulationParameters:
             sys.exit()
         
         orth_tag = "_orth" if self.orthogonality_flag else "_non_orth"
-        simID_name = f'simID_{simulationID}' + orth_tag
+        if (self.operation_mode == OperatingModes.TRAINING):
+            self.base_folder = 'data_logs_training'
+            self.orthogonality_flag = False
+        else:
+            self.base_folder = 'data_logs_testing' + orth_tag
+
+        simID_name = f'simID_{simulationID}'
         self.base_folder_path = os.path.join(self.root_path, simID_name, self.base_folder)
         if results_base is None:
             self.results_base = os.path.join(self.root_path, simID_name)
@@ -48,8 +54,8 @@ class SimulationParameters:
         self.data_folder = os.path.join(self.base_folder_path, "betas")
         self.validation_data_folder = os.path.join(self.base_folder_path, "betas_val")
         if not operation_mode==OperatingModes.TRAINING:
-            self.results_folder = os.path.join(self.results_base, "results")
-            self.plot_folder = os.path.join(self.results_base, "plots")
+            self.results_folder = os.path.join(self.results_base, ("results"+orth_tag))
+            self.plot_folder = os.path.join(self.results_base, ("plots"+orth_tag))
         
 
         if not self.operation_mode == OperatingModes.PLOTTING_ONLY:

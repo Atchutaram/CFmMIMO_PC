@@ -5,12 +5,8 @@ from sys import exit
 
 from parameters.modes import OperatingModes
 
-default_number_of_samples = 400000
-default_number_of_samples = 100000
 default_number_of_samples = 500
-
-testing_number_of_samples = min(int(default_number_of_samples * 0.25), 1000)
-
+testing_number_of_samples = 20
 
 # Defining some useful functions
 
@@ -78,6 +74,9 @@ if clean:
     print(f"Cleaned all! ")
     exit()
 
+if operating_mode == OperatingModes.ALL:
+    testing_number_of_samples = min(int(number_of_samples*0.25), testing_number_of_samples, 1000)
+
 
 operating_mode = list(OperatingModes)[operating_mode-1]  # Translating integers to the element of OperatingModes
 all_mode_flag = False
@@ -100,7 +99,7 @@ if varying_K_flag:
 
 if orthogonality_flag and scenario > 1:
     print('Orthogonality flag cannot be True for these scenarios! So, it is set to False.')
-    orthogonality_flag = False
+    exit()
 
 
 print("""\nWelcome to the CFmMIMO_PC code.
@@ -165,12 +164,9 @@ if __name__ == '__main__':
         coverage_area = 0.1  # in sq.Km
         inp_number_of_users = 20
         inp_access_point_density = 2000
-        # models_list = ['TDN', 'GFT', , 'FCN', 'ANN']
+        # models_list = ['TDN', 'GFT', 'FCN', 'ANN']
 
-        if simulation_parameters.orthogonality_flag:
-            models_list = default_models_list
-        else:
-            models_list = default_models_list
+        models_list = default_models_list
         
     elif simulation_parameters.scenario==2:
         coverage_area = 1
@@ -213,6 +209,8 @@ if __name__ == '__main__':
         print(f'Finished training in {round(time_now - time_then, 2)} second(s)')
         
         if all_mode_flag:
+            orthogonality_flag = False
+            orth_text = 'non othrogonal case'
             operating_mode = OperatingModes.TESTING
             number_of_samples = testing_number_of_samples
             
@@ -229,7 +227,27 @@ if __name__ == '__main__':
 
             # Compute and display execution time.
             time_now = time.perf_counter()
-            print(f'Finished dataGen, testing, and plotting in {round(time_now - time_then, 2)} second(s)')
+            print(f'Finished dataGen, testing, and plotting for {orth_text} in {round(time_now - time_then, 2)} second(s)')
+            if not scenario > 1:
+                orthogonality_flag = True
+                orth_text = 'othrogonal case'
+                operating_mode = OperatingModes.TESTING
+                number_of_samples = testing_number_of_samples
+                
+                simulation_parameters = SimulationParameters(root, simulationID, number_of_samples, operating_mode, scenario, retain, triton_results_base, orthogonality_flag, varying_K_flag)
+                system_parameters = SystemParameters(simulation_parameters, coverage_area, inp_number_of_users, inp_access_point_density, models_list)
+                
+                time_then = time.perf_counter()
+
+                if not os.listdir(simulation_parameters.data_folder):
+                    for sample_id in range(number_of_samples):
+                        data_gen(simulation_parameters, system_parameters, sample_id)
+            
+                test_and_plot(simulation_parameters, system_parameters, plotting_only=False)
+
+                # Compute and display execution time.
+                time_now = time.perf_counter()
+                print(f'Finished dataGen, testing, and plotting for {orth_text} in {round(time_now - time_then, 2)} second(s)')
     elif simulation_parameters.operation_mode==OperatingModes.TESTING:
         time_then = time.perf_counter()
         

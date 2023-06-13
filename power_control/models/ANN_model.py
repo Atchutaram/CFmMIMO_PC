@@ -19,7 +19,7 @@ class HyperParameters(CommonParameters):
 
         #  Room for any additional model-specific configurations
         cls.heads = 5
-        if (simulation_parameters.operation_mode == 0):
+        if (simulation_parameters.scenario == 0):
             M2 = 16*cls.heads
         else:
             M2 = 40*cls.heads

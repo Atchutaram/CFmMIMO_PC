@@ -7,15 +7,16 @@
 #SBATCH --output=main_learn_1.out
 
 triton=1  # do not change
+operation_mode=1  # do not change
 
 
 # Configuration
 simID=1
-number_of_samples=400000
-operation_mode=1
-scenario=0
-orthogonality=0
+scenario=1
 retain=0
+number_of_samples=400000
+
+
 
 module load anaconda
 source activate CFmMIMO_PC

@@ -30,6 +30,7 @@ def plt1(results_folder, algo_list, plot_folder, scenario):
     for algo_id, algo in enumerate(algo_list):
         if algo == 'ref_algo_two':
             algo = 'APG'
+        algo = algo.upper()
         se_array = torch.cat(se_out[algo_id])
         se_out_final = se_array.reshape((-1,))
 
