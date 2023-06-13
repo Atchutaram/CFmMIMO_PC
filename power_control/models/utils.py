@@ -5,7 +5,6 @@ import importlib
 import pickle
 import math
 import torch.nn.functional as F
-from torch.autograd import Variable
 
 
 from utils.utils import find_the_latest_file, find_the_latest_folder
@@ -14,12 +13,7 @@ from utils.utils import find_the_latest_file, find_the_latest_folder
 find_import_path = lambda model_name : f"power_control.models.{model_name}_model"
 
 def initialize_weights(m):
-    # from .TMN_model import Filter1, Filter2, Filter3
-    if isinstance(m, nn.Conv2d):
-        nn.init.kaiming_uniform_(m.weight.data, nonlinearity='relu')
-        if m.bias is not None:
-            nn.init.constant_(m.bias.data, 0)
-    elif isinstance(m, nn.Linear):
+    if isinstance(m, nn.Linear):
         nn.init.kaiming_uniform_(m.weight.data)
         nn.init.constant_(m.bias.data, 0)
 
@@ -53,13 +47,15 @@ def deploy(model, test_sample, phi_cross_mat, model_name, device):
         mus_predicted = model([test_sample, phi_cross_mat.to(device=device, dtype=torch.float32)])
         return mus_predicted
 
-def initialize_hyper_params(model_name, simulation_parameters, system_parameters, is_test_mode=False):
+def initialize_hyper_params(model_name, simulation_parameters, system_parameters):
+    # Ex: If model_name is 'ANN', it imports ANN_model module and initializes its hyper parameters.
     import_path = find_import_path(model_name)
     module = importlib.import_module(import_path, ".")  # imports the scenarios
     
-    module.HyperParameters.intialize(simulation_parameters, system_parameters, is_test_mode=is_test_mode)
+    module.HyperParameters.intialize(simulation_parameters, system_parameters)
 
 def load_the_latest_model_and_params_if_exists(model_name, model_folder, system_parameters, grads, is_testing=False):  
+    # For Training mode, the function first imports the approriate model and initializes weights
     import_path = find_import_path(model_name)
     module = importlib.import_module(import_path, ".")  # imports the scenarios
         
@@ -69,22 +65,16 @@ def load_the_latest_model_and_params_if_exists(model_name, model_folder, system_
         model_folder = os.path.join(model_folder, find_the_latest_folder(model_folder), 'checkpoints')
         model_file = find_the_latest_file(model_folder)
     
-        if model_file is not None:
+        if model_file:
             model_file_path = os.path.join(model_folder, model_file)
             print('loading from: ', model_file_path)
             model = module.NeuralNet.load_from_checkpoint(model_file_path, system_parameters=system_parameters, grads=grads)
-            if model_name == 'ANN':
-                print(type(model))
-                print(model.scale_factor_in)
-        elif is_testing:
+        else:
             from sys import exit
-            print(model_folder)
-            print('Train the neural network before testing!')
+            print({model_folder})
+            print(f'Train the neural network before testing!')
             exit()
-    else:
-        model.set_folder(model_folder)
     
-    # print(model_file)
     return model
 
 def get_nu_tensor(betas, system_parameters):
@@ -96,7 +86,7 @@ def get_nu_tensor(betas, system_parameters):
 
     return nu_mat
     
-def attention(query, key, value, d_k, mask=None, dropout=None, no_score= False):
+def attention(query, key, value, d_k, mask=None, dropout=None):
 
     # query, key, value tensor are of dimension B x h x K x d_k
     # mask tensor is of dimension K x K
@@ -111,15 +101,12 @@ def attention(query, key, value, d_k, mask=None, dropout=None, no_score= False):
     if dropout is not None:
         scores = dropout(scores)
         
-    if no_score:
-        output = value
-    else:
-        output = scores @ value
+    output = scores @ value
     
     return output  # dimension B x h x K x d_k
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, heads, M, dropout = 0.1, no_score=False):
+    def __init__(self, heads, M, dropout = 0.1):
         super().__init__()
         
         self.M = M
@@ -136,7 +123,6 @@ class MultiHeadAttention(nn.Module):
         self.k_linear = nn.Linear(M, M)
         self.dropout = nn.Dropout(dropout)
         self.out = nn.Linear(M, M)
-        self.no_score = no_score
     
     def forward(self, x, mask=None):
         
@@ -156,7 +142,7 @@ class MultiHeadAttention(nn.Module):
         key = key.transpose(1,2)
         value = value.transpose(1,2)
 
-        scores = attention(query, key, value, self.d_k, mask, self.dropout, self.no_score)
+        scores = attention(query, key, value, self.d_k, mask, self.dropout)
 
         # concatenate heads and put through final linear layer
         concat = scores.transpose(1,2).contiguous().view(B, -1, self.M)
@@ -167,21 +153,10 @@ class MultiHeadAttention(nn.Module):
 
 class FeedForward(nn.Module):
 
-    def __init__(self, M, dropout = 0.1, last=False):
+    def __init__(self, M, dropout = 0.1):
         super().__init__() 
         
-        if last:
-            dd = int(4)
-        elif dropout<(1-1e-1):
-            dd = int(4 / (1-dropout))*M
-        else:
-            dd = int(4)*M
-
-        if 0 <= dropout <= (1-1e-1):
-            # d_mid = int(4 / (1-dropout)) * M
-            d_mid = dd
-        else:
-            d_mid = dd
+        d_mid = int(1 / (1-dropout)) * M
 
         self.linear_1 = nn.Linear(M, d_mid)
         self.dropout = nn.Dropout(dropout)
@@ -210,12 +185,12 @@ class Norm(nn.Module):
 
 class EncoderLayer(nn.Module):
     
-    def __init__(self, M, heads, dropout=0.1, no_score=False, last=False):
+    def __init__(self, M, heads, dropout=0.1):
         super().__init__()
         self.norm_1 = Norm(M)
         self.norm_2 = Norm(M)
-        self.attn = MultiHeadAttention(heads, M, dropout, no_score)
-        self.ff = FeedForward(M, dropout, last)
+        self.attn = MultiHeadAttention(heads, M, dropout)
+        self.ff = FeedForward(M, dropout)
         self.dropout_1 = nn.Dropout(dropout)
         self.dropout_2 = nn.Dropout(dropout)
         
@@ -225,32 +200,3 @@ class EncoderLayer(nn.Module):
         x = x + self.dropout_2(self.ff(x))
         x = self.norm_2(x)
         return x
-    
-
-class PositionalEncoder(nn.Module):
-    def __init__(self, M, max_seq_len = 80):
-        super().__init__()
-        self.M = M
-        
-        # create constant 'pe' matrix with values dependant on 
-        # pos and i
-        pe = torch.zeros(max_seq_len, M)
-        for pos in range(max_seq_len):
-            for i in range(0, M, 2):
-                pe[pos, i] = math.sin(pos / (10000 ** ((2 * i)/M)))
-                pe[pos, i + 1] = math.cos(pos / (10000 ** ((2 * (i + 1))/M)))
-                
-        pe = pe.unsqueeze(0)
-        self.register_buffer('pe', pe)
- 
-    
-    def forward(self, x):
-        # make embeddings relatively larger
-        x = x * math.sqrt(self.M)
-        #add constant to embedding
-        seq_len = x.shape[1]
-        x = x + Variable(self.pe[:,:seq_len], requires_grad=False).to(device=x.device)
-        return x
-
-def inv_sigmoid(x):
-    return 6*x-3

@@ -195,21 +195,7 @@ def run_power_control_algos(simulation_parameters, system_parameters, algo_list,
 
         _, SE[algo_name] = utility_computation(betas, mus, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)
 
-
     model_name = 'FCN'
-    if model_name in algo_list:
-        algo_name = model_name
-        
-
-        time_then = time.perf_counter()
-        mus = deploy(models[model_name], betas, phi_cross_mat, model_name, device)
-        time_now = time.perf_counter()
-        latency[algo_name] = round(time_now - time_then, 6)
-
-        _, SE[algo_name] = utility_computation(betas, mus, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device)
-
-    
-    model_name = 'CNN'
     if model_name in algo_list:
         algo_name = model_name
         
@@ -272,13 +258,13 @@ def setup_and_load_deep_learning_models(models_to_run, simulation_parameters, sy
     
     models = {}
     for model_name in models_to_run:
-        initialize_hyper_params(model_name, simulation_parameters, system_parameters, is_test_mode=True)
+        initialize_hyper_params(model_name, simulation_parameters, system_parameters)
         models[model_name] = load_the_latest_model_and_params_if_exists(model_name, model_folder_dict[model_name], system_parameters, grads, is_testing=True)
     
     return models
 
 def test_and_plot(simulation_parameters, system_parameters, plotting_only):
-    device = torch.device('cpu')
+    device = torch.device('cpu')  # Need to force this. We do not want to test in GPU.
     algo_list = ['epa', 'ref_algo_one', 'ref_algo_two', ]
     models_list = system_parameters.models_list  # deep learning models
 

@@ -28,10 +28,8 @@ def plt1(results_folder, algo_list, plot_folder, scenario):
                 se_out[algo_id].append(temp_array['result_sample'])
 
     for algo_id, algo in enumerate(algo_list):
-
-        if algo == 'TMN':
-            algo = 'ANN'
-            print(algo)
+        if algo == 'ref_algo_two':
+            algo = 'APG'
         se_array = torch.cat(se_out[algo_id])
         se_out_final = se_array.reshape((-1,))
 

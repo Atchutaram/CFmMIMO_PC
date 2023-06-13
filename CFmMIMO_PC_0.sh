@@ -1,20 +1,20 @@
 #!/bin/bash
 #SBATCH --time=12:00:00
-#SBATCH --job-name=main_learn_1
+#SBATCH --job-name=main_learn_0
 #SBATCH --mem-per-cpu=8G
 #SBATCH --cpus-per-task=1
 #SBATCH --gres=gpu:1
-#SBATCH --output=main_learn_1.out
+#SBATCH --output=main_learn_0.out
 
 triton=1  # do not change
 
 
 # Configuration
-simID=1
+simID=0
 number_of_samples=400000
 operation_mode=1
 scenario=0
-orthogonality=0
+orthogonality=1
 retain=0
 
 module load anaconda

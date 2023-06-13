@@ -108,4 +108,4 @@ class SystemParameters:
         ref = torch.tensor(ref_list, device=simulation_parameters.device, requires_grad=False, dtype=torch.float32)
         
         self.ap_minus_ref = AP_positions.view(-1, 1, 2)-ref
-        self.sqrt_laplace_matrix = compute_laplace_mat(AP_positions, simulation_parameters.device)
+        # self.sqrt_laplace_matrix = compute_laplace_mat(AP_positions, simulation_parameters.device)

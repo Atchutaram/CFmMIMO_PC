@@ -48,20 +48,12 @@ def grad_f(betas, mus, N, zeta_d, T_p, T_c, phi_cross_mat, v_mat, tau, device):
     grad = num / den.view(-1, 1, 1)  # Eq (42) b X M X K
     return [grad, SE]
 
-def grads(betas_in, mus_in, eta, slack_variable, device, system_parameters, phi_cross_mat):
-    epsilon = 1e-12
+def grads(betas_in, mus_in, device, system_parameters, phi_cross_mat):
     with torch.no_grad():
         tau = system_parameters.tau
         v_mat = compute_vmat(betas_in, system_parameters.zeta_p, system_parameters.T_p, phi_cross_mat)  # Eq (5) b X M X K
         [mus_out, SE] = grad_f(betas_in, mus_in, system_parameters.number_of_antennas, system_parameters.zeta_d, system_parameters.T_p, system_parameters.T_c, phi_cross_mat, v_mat, tau, device)  # [b X M X K, b X K]
         
-        if (1/(eta+1)) > epsilon:
-            mus_temp = -(1/(eta+1)) * torch.unsqueeze((mus_in).sum(dim=1), 1)  # b X 1 X K
-            grad_wrt_slack = 0
-            mus_out = eta/(eta+1)*mus_out + mus_temp  # results in b X M X K
-        else:
-            grad_wrt_slack = 0
-
-        mus_out, grad_wrt_slack = [-1 * mus_out, -1 * grad_wrt_slack]  # do not merge with earlier equation; keep it different for readability.
+        mus_out= -mus_out  # Because we want gradient of loss which is negative of gradient of utility
         utility = compute_smooth_min(SE, tau)  # b X 1
-        return [mus_out, grad_wrt_slack, utility]
+        return [mus_out, utility]
