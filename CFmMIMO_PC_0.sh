@@ -19,4 +19,4 @@ number_of_samples=400000
 module load anaconda
 source activate CFmMIMO_PC
 
-python CFmMIMO_PC.py --simulationID $simID --samples $number_of_samples --mode $operation_mode --scenario $scenario --orthogonality $orthogonality --retain $retain --host $triton
+python CFmMIMO_PC.py --simulationID $simID --samples $number_of_samples --mode $operation_mode --scenario $scenario --retain $retain --host $triton

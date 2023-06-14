@@ -6,7 +6,7 @@ from sys import exit
 from parameters.modes import OperatingModes
 
 default_number_of_samples = 500
-testing_number_of_samples = 20
+testing_number_of_samples = 500
 
 # Defining some useful functions
 
