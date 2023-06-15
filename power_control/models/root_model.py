@@ -58,7 +58,7 @@ class CommonParameters:
         cls.scenario = simulation_parameters.scenario
         cls.dropout = 0
         
-        if (simulation_parameters.operation_mode == 2) or (cls.scenario > 1):
+        if (simulation_parameters.operation_mode == 2) or (cls.scenario > 2):
             cls.batch_size = 1  # for either large-scale systems or for testing mode
         
 
@@ -119,9 +119,10 @@ class RootNet(pl.LightningModule):
             sch = self.lr_schedulers()
             if LL<=self.current_epoch<=UL and (self.current_epoch % skip_length==0):
                 sch.step()
-            print('\nEpoch end', sch.get_last_lr())
+            # print('\nEpoch end', sch.get_last_lr())
         else:
-            print('\nEpoch end', self.learning_rate)
+            # print('\nEpoch end', self.learning_rate)
+            pass
 
         
 

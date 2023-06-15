@@ -97,7 +97,7 @@ if varying_K_flag:
     exit()
 
 
-if orthogonality_flag and scenario > 1:
+if orthogonality_flag and scenario > 2:
     print('Orthogonality flag cannot be True for these scenarios! So, it is set to False.')
     exit()
 
@@ -169,16 +169,18 @@ if __name__ == '__main__':
         models_list = default_models_list
         
     elif simulation_parameters.scenario==2:
+        coverage_area = 0.1
+        inp_number_of_users = 40
+        inp_access_point_density = 2000
+        # models_list = ['TDN', 'GFT', 'FCN', 'ANN']
+
+        models_list = default_models_list
+        
+    elif simulation_parameters.scenario==3:
         coverage_area = 1
         inp_number_of_users = 500
         inp_access_point_density = 2000
-        models_list = ['ANN',]  # Plan is to do ['AE-FCN', 'ANN', 'GFT', 'TP']
-        
-    elif simulation_parameters.scenario==3:
-        coverage_area = 10
-        inp_number_of_users = 1000
-        inp_access_point_density = 2000
-        models_list = ['ANN',]  # Plan is to do ['AE-FCN', 'ANN', 'GFT', 'TP']
+        models_list = ['ANN',]  # Plan is to do ['AE-FCN', 'ANN', 'GFT']
     
     system_parameters = SystemParameters(simulation_parameters, coverage_area, inp_number_of_users, inp_access_point_density, models_list)
     
@@ -228,7 +230,7 @@ if __name__ == '__main__':
             # Compute and display execution time.
             time_now = time.perf_counter()
             print(f'Finished dataGen, testing, and plotting for {orth_text} in {round(time_now - time_then, 2)} second(s)')
-            if not scenario > 1:
+            if not scenario > 2:
                 orthogonality_flag = True
                 orth_text = 'othrogonal case'
                 operating_mode = OperatingModes.TESTING

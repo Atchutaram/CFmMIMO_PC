@@ -14,7 +14,7 @@ operation_mode=1  # do not change
 simID=1
 scenario=1
 retain=0
-number_of_samples=400000
+number_of_samples=100000
 
 
 

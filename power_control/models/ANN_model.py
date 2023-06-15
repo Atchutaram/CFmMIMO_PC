@@ -22,7 +22,7 @@ class HyperParameters(CommonParameters):
         if (simulation_parameters.scenario == 0):
             M2 = 16*cls.heads
         else:
-            M2 = 40*cls.heads
+            M2 = 40*cls.heads*4
         cls.M2 = int(1 / (1-cls.dropout))*M2
 
     

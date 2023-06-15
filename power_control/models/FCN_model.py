@@ -26,8 +26,10 @@ class HyperParameters(CommonParameters):
         
         if (simulation_parameters.scenario == 0):
             cls.hidden_size = int((1/(1-cls.dropout))*MK*4)
+        elif (simulation_parameters.scenario == 1):
+            cls.hidden_size = int((1/(1-cls.dropout))*MK/3)
         else:
-            cls.hidden_size = int((1/(1-cls.dropout))*MK/40)
+            cls.hidden_size = int((1/(1-cls.dropout))*MK/10)
 
         cls.output_shape = (-1, cls.M, cls.K)
         
