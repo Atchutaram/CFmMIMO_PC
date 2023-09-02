@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import os
 import torch
 import seaborn as sns
-
-
+import numpy as np
+import csv 
 
 def performance_plotter(results_folder, algo_list, plot_folder, scenario, model=None):
     # ToDo: model is None and unused for now. This is planned for future
@@ -26,7 +26,7 @@ def plt1(results_folder, algo_list, plot_folder, scenario):
                 file_path_and_name = os.path.join(results_folder, file)
                 temp_array = torch.load(file_path_and_name)
                 se_out[algo_id].append(temp_array['result_sample'])
-
+    
     for algo_id, algo in enumerate(algo_list):
         if algo == 'ref_algo_two':
             algo = 'APG'
@@ -41,6 +41,21 @@ def plt1(results_folder, algo_list, plot_folder, scenario):
 
         label = f'{scenario_name} {algo}'.replace('_', ' ')
         ax2 = sns.kdeplot(se_sum_final.cpu().numpy(), label=label)
+
+        # Save CDF data to csv
+        x_data = se_sum_final.cpu().numpy()
+        y_data = torch.linspace(0, 1, se_sum_final.size()[0]).cpu().numpy()
+        with open(os.path.join(plot_folder, f'{algo}_CDF.csv'), 'w', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            for xi, yi in zip(x_data, y_data):
+                csvwriter.writerow([xi, yi])
+
+        # Calculate and save PDF data using numpy's histogram
+        hist, bin_edges = np.histogram(se_sum_final.cpu().numpy(), bins=100, density=True)
+        with open(os.path.join(plot_folder, f'{algo}_PDF.csv'), 'w', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            for xi, yi in zip(0.5 * (bin_edges[1:] + bin_edges[:-1]), hist):  # Using mid-points of the bins
+                csvwriter.writerow([xi, yi])
 
     ax.legend()
     ax.set_xlabel('Per-user spectral efficiency')
