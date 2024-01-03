@@ -1,21 +1,16 @@
 import os
 import torch
-from enum import IntEnum, auto
 import sys
 
 from utils.utils import handle_deletion_and_creation
+from parameters.modes import OperatingModes
 
-
-
-class OperatingModes(IntEnum):
-    TRAINING  = auto()  # generates training data and perform training in data Handler save trained NN model
-    TESTING  = auto()  # Performs dataGen and dataHandler for all the algos for given scenarios. The DL algo uses the trained NN model
-    PLOTTING_ONLY = auto()  # this is only after testing mode
-    ALL = auto()  # Performs training and then testing.
 
 
 
 class SimulationParameters:
+    # This class Maintains all the simulation parameter settings
+    
     def __init__(self, root, simulationID, number_of_samples, operation_mode, scenario, retain, results_base, orthogonality_flag, varying_K_flag):
         
         self.number_of_samples = number_of_samples
@@ -37,11 +32,19 @@ class SimulationParameters:
             print('root_path failure!')
             sys.exit()
         
-        self.base_folder_path = os.path.join(self.root_path, f'simID_{simulationID}', self.base_folder)
-        if results_base is None:
-            self.results_base = os.path.join(self.root_path, f'simID_{simulationID}')
+        orth_tag = "_orth" if self.orthogonality_flag else "_non_orth"
+        if (self.operation_mode == OperatingModes.TRAINING):
+            self.base_folder = 'data_logs_training'
+            self.orthogonality_flag = False
         else:
-            self.results_base = os.path.join(results_base, f'simID_{simulationID}')
+            self.base_folder = 'data_logs_testing' + orth_tag
+
+        simID_name = f'simID_{simulationID}'
+        self.base_folder_path = os.path.join(self.root_path, simID_name, self.base_folder)
+        if results_base is None:
+            self.results_base = os.path.join(self.root_path, simID_name)
+        else:
+            self.results_base = os.path.join(results_base, simID_name)
 
         if self.operation_mode == OperatingModes.TESTING:
             handle_deletion_and_creation(self.results_base, force_retain=True)
@@ -51,8 +54,8 @@ class SimulationParameters:
         self.data_folder = os.path.join(self.base_folder_path, "betas")
         self.validation_data_folder = os.path.join(self.base_folder_path, "betas_val")
         if not operation_mode==OperatingModes.TRAINING:
-            self.results_folder = os.path.join(self.results_base, "results")
-            self.plot_folder = os.path.join(self.results_base, "plots")
+            self.results_folder = os.path.join(self.results_base, ("results"+orth_tag))
+            self.plot_folder = os.path.join(self.results_base, ("plots"+orth_tag))
         
 
         if not self.operation_mode == OperatingModes.PLOTTING_ONLY:
@@ -70,6 +73,7 @@ class SimulationParameters:
 
         else:
             if not os.path.exists(self.results_folder) or len(os.listdir(self.results_folder)) == 0:
+                print(f'Either {self.results_folder} folder is missing or empty')
                 print('Run TESTING mode before running PLOTTING_ONLY mode!')
                 sys.exit()
             
@@ -96,4 +100,3 @@ class SimulationParameters:
                     print(subfolder_path)
                     print('Train the neural network before testing!')
                     sys.exit()
-        #         os.makedirs(subfolder_path)         

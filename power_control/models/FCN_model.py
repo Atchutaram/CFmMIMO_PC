@@ -3,121 +3,72 @@ import torch.nn as nn
 import os
 from sklearn.preprocessing import StandardScaler
 
-from .root_model import RootDataset, CommonParameters, RootNet
+from .root_model import CommonParameters, RootNet
 from .utils import Norm
-from utils.utils import tensor_max_min_print
+from power_control.testing import project_to_s
 
 
 MODEL_NAME = 'FCN'
 
-class BetaDataset(RootDataset):
-    def __init__(self, data_path, phi_orth, normalizer, mode, n_samples):
-        self.path = data_path
-        _, _, files = next(os.walk(self.path))
-        self.n_samples = min(len(list(filter(lambda k: 'betas' in k, files))), n_samples)
-        self.sc = normalizer
-        self.mode = mode
-        self.phi_orth = phi_orth
-        
-    def __getitem__(self, index):
-        beta_file_name = f'betas_sample{index}.pt'
-        beta_file_path = os.path.join(self.path, beta_file_name)
-        m = torch.load(beta_file_path)
-        beta_original = m['betas'].to(dtype=torch.float32)
-        pilot_sequence = m['pilot_sequence'].to(dtype=torch.int32)
-
-        phi = torch.index_select(self.phi_orth.to(dtype=torch.float32), 0, pilot_sequence)
-        phi_cross_mat = torch.abs(phi.conj() @ phi.T)
-        
-        beta_torch = torch.log(beta_original)
-        beta_torch = beta_torch.to(dtype=torch.float32)
-        beta_torch = beta_torch.reshape(beta_original.shape)
-
-        return phi_cross_mat, beta_torch, beta_original
-
-    def __len__(self):
-        return self.n_samples
-
 # Hyper-parameters
 class HyperParameters(CommonParameters):
-    sc = StandardScaler()
-    sc_path = os.path.join(os.getcwd(), f'{MODEL_NAME}_sc.pkl')
-    training_data_path = ''
-    InpDataSet = BetaDataset
 
     @classmethod
-    def intialize(cls, simulation_parameters, system_parameters, is_test_mode):
+    def intialize(cls, simulation_parameters, system_parameters):
         
         cls.pre_int(simulation_parameters, system_parameters)
-        cls.dropout = 0.5
+
+        #  Room for any additional model-specific configurations
+        cls.dropout = 0
         cls.input_size = cls.M * cls.K
         cls.output_size = cls.M * cls.K
         MK = 1 * cls.M * cls.K
-        if 0 <= cls.dropout <= (1-1e-1):
-            cls.hidden_size = int((1/(1-cls.dropout))*MK)
+        
+        if (simulation_parameters.scenario == 0):
+            cls.hidden_size = int((1/(1-cls.dropout))*MK*4)
+        elif (simulation_parameters.scenario == 1):
+            cls.hidden_size = int((1/(1-cls.dropout))*MK/2)
         else:
-            cls.hidden_size = MK
+            cls.hidden_size = int((1/(1-cls.dropout))*MK/7)
 
         cls.output_shape = (-1, cls.M, cls.K)
         
-        if is_test_mode:
-            cls.batch_size = 1
-            return
-        
-        number_of_micro_batches = torch.cuda.device_count()  # This is to handle data parallelism
-        if not number_of_micro_batches:
-            number_of_micro_batches = 1
-
-        if cls.scenario == 0:
-            batch_size = 8 * 2
-            cls.batch_size = int(batch_size/number_of_micro_batches)
-        elif cls.scenario == 1:
-            batch_size = 8 * 2
-            cls.batch_size = int(batch_size/number_of_micro_batches)
-        else:
-            cls.batch_size = 1
-    
 
 class NeuralNet(RootNet):
     def __init__(self, system_parameters, grads):
         super(NeuralNet, self).__init__(system_parameters, grads)
-        
+
         self.n_samples = HyperParameters.n_samples
         self.num_epochs = HyperParameters.num_epochs
-        self.eta = HyperParameters.eta
         self.data_path = HyperParameters.training_data_path
         self.val_data_path = HyperParameters.validation_data_path
-        self.normalizer = HyperParameters.sc
         self.batch_size = HyperParameters.batch_size
         self.learning_rate = HyperParameters.learning_rate
         self.VARYING_STEP_SIZE = HyperParameters.VARYING_STEP_SIZE
         self.gamma = HyperParameters.gamma
         self.step_size = HyperParameters.step_size
+        
+        self.step_size = HyperParameters.step_size
         self.input_size = HyperParameters.input_size
         self.hidden_size = HyperParameters.hidden_size
         self.output_size = HyperParameters.output_size
         self.output_shape = HyperParameters.output_shape
-        self.InpDataset = HyperParameters.InpDataSet
         self.dropout = HyperParameters.dropout
-        
-        self.hidden_layer_1 = nn.Sequential(
-            Norm(self.input_size),
-            nn.Linear(self.input_size, self.hidden_size),
-            Norm(self.hidden_size),
-            nn.ReLU(),
-            nn.Dropout(p=self.dropout),
-        )
-        
-        
-        self.hidden_layer_2 = nn.Sequential(
+
+        self.hidden = lambda: nn.Sequential(
             nn.Linear(self.hidden_size, self.hidden_size),
             Norm(self.hidden_size),
             nn.ReLU(),
             nn.Dropout(p=self.dropout),
         )
         
-        
-        self.output_layer = nn.Sequential(
+        self.FCN_full = nn.Sequential(
+            Norm(self.input_size),
+            nn.Linear(self.input_size, self.hidden_size),
+            Norm(self.hidden_size),
+            nn.ReLU(),
+            nn.Dropout(p=self.dropout),
+            self.hidden(),
             nn.Linear(self.hidden_size, self.output_size),
             Norm(self.output_size),
         )
@@ -127,11 +78,13 @@ class NeuralNet(RootNet):
 
     def forward(self, x):
         x, _ = x
-        output = self.hidden_layer_1(x.view(-1, 1, self.input_size))
-        output = self.hidden_layer_2(output)
-        output = self.output_layer(output)
-        output = torch.nn.functional.hardsigmoid(output)
+        output = self.FCN_full(x.view(-1, 1, self.input_size))
         output = output.view(self.output_shape)
-        sf = torch.nn.functional.hardsigmoid(self.scale_factor_in)
-        mf = (1-self.init_mf)*sf + self.init_mf
-        return output*mf*self.N_inv_root
+        
+        output = torch.nn.functional.softplus(output+6, beta = 2)
+        
+        y = torch.exp(-output)
+        
+        output = project_to_s(y, self.N_inv_root)
+        
+        return output
