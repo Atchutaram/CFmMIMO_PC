@@ -14,7 +14,8 @@ def train(simulation_parameters, system_parameters):
 
         tb_logger = pl_loggers.TensorBoardLogger(save_dir=simulation_parameters.results_base, name=model_name)
         if torch.cuda.is_available()>0:
-            trainer = Trainer(gpus=-1, max_epochs=model.num_epochs, logger=tb_logger)
+            # trainer = Trainer(gpus=-1, max_epochs=model.num_epochs, logger=tb_logger)
+            trainer = Trainer(accelerator="gpu", devices=-1, max_epochs=model.num_epochs, logger=tb_logger)
         else:
             trainer = Trainer(max_epochs=model.num_epochs, logger=tb_logger)
         

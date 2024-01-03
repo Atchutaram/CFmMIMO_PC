@@ -36,7 +36,7 @@ class RootDataset(Dataset):
 
 class CommonParameters:
     n_samples = 1
-    batch_size = 16
+    batch_size = 1024
     num_epochs = 4*4
 
     learning_rate =3e-4
