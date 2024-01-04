@@ -4,19 +4,31 @@ import os
 import time
 import shutil
 import sys
+from sys import exit
 
 
-def save_object(obj, filename):
+def cleanFolders():
+    """ Clean old simulation folders and exit"""
+    import glob
+    from utils.utils import deleteFolder
+    
+    dirs = glob.glob("simID*/")
+    deleteFolder(*dirs)
+    
+    print(f"Cleaned all! ")
+    exit()
+
+def saveObject(obj, filename):
     with open(filename, 'wb') as outp:  # Overwrites any existing file.
         pickle.dump(obj, outp, pickle.HIGHEST_PROTOCOL)
 
 
-def load_object(filename):
+def loadObject(filename):
     with open(filename, 'rb') as inp:  # Overwrites any existing file.
         return pickle.load(inp)
 
 
-def delete_folder(*args):
+def deleteFolder(*args):
     for folder in args:
         for _ in range(5):
             if not os.path.exists(folder):
@@ -29,36 +41,39 @@ def delete_folder(*args):
             sys.exit()
 
 
-def handle_deletion_and_creation(folder, number_of_samples=None, retain=False, force_retain= False):
+def handleDeletionAndCreation(folder, numberOfSamples=None, retain=False, forceRetain= False):
     if os.path.exists(folder):
-        if force_retain:
+        if forceRetain:
             return
-        old_number_of_samples = len(os.listdir(folder))
+        oldNumberOfSamples = len(os.listdir(folder))
         if retain:
-            if old_number_of_samples==number_of_samples:
+            if oldNumberOfSamples==numberOfSamples:
                 return
             else:
-                response = query_fn(f"""
+                response = queryFn(f"""
 Retain Failed!
-You request to retain {number_of_samples} number of samples while we have {old_number_of_samples} samples in the folder {folder}.
+You request is to retain {numberOfSamples} number of samples,
+while we have {oldNumberOfSamples} samples in the folder {folder}.
 Do you want to overwrite the data folder [y/n]? """)
                 if response == 'n':
-                    print(f'Data folder retain cannot be performed! Either set the set the --samples option to {old_number_of_samples} or --retain option to 0.')
+                    print(f('Retaining operation for the data folder cannot be performed!'
+                            'Either set the set the --samples option to {oldNumberOfSamples}'
+                            'or --retain option to 0.'))
                     sys.exit()
     
     import random
     random.seed()
     time.sleep(random.uniform(1, 20))
-    if os.path.exists(folder) and force_retain:
+    if os.path.exists(folder) and forceRetain:
         return
     
-    delete_folder(folder)
+    deleteFolder(folder)
     
     os.mkdir(folder)
 
-def delete_folder_contents(grad_inps_folder):
+def deleteFolderContents(gradInpsFolder):
 
-    files = glob.glob(os.path.join(grad_inps_folder, '*'))
+    files = glob.glob(os.path.join(gradInpsFolder, '*'))
     for f in files:
         for index in range(1000):
             try:
@@ -71,7 +86,7 @@ def delete_folder_contents(grad_inps_folder):
                 raise Exception(f"Sorry, could not delete {f}")
 
 
-def query_fn(message):
+def queryFn(message):
     while True:
         query = input(message)
         response = query[0].lower()
@@ -81,27 +96,22 @@ def query_fn(message):
             break
     return response
 
-def find_the_latest_file(model_folder):
+def findTheLatestFile(modelFolder):
     import glob
     file = None
-    list_of_files = glob.glob(os.path.join(model_folder, '*'))
-    if list_of_files:
-        file = max(list_of_files, key=os.path.getctime)
+    listOfFiles = glob.glob(os.path.join(modelFolder, '*'))
+    if listOfFiles:
+        file = max(listOfFiles, key=os.path.getctime)
     if file is not None:
         if not os.path.isfile(file):
             file = None
     return file
 
-def find_the_latest_folder(parent_folder):
+def findTheLatestFolder(parentFolder):
     import glob
-    latest_folder = max(glob.glob(os.path.join(parent_folder, '*/')), key=os.path.getmtime)
-    if latest_folder:
-        return latest_folder
+    latestFolder = max(glob.glob(os.path.join(parentFolder, '*/')), key=os.path.getmtime)
+    if latestFolder:
+        return latestFolder
     else:
-        print(parent_folder, latest_folder)
+        print(parentFolder, latestFolder)
         raise Exception("Train the neural network before testing!")
-
-def tensor_max_min_print(tensor, text, exit_flag=False):
-    print(f'Min of {text}: {tensor.min().detach().item()} Max of {text}: {tensor.max().detach().item()} \n')
-    if exit_flag:
-        sys.exit()

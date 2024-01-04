@@ -8,16 +8,16 @@
 #SBATCH --tmp=1T
 
 triton=1  # do not change
-operation_mode=1  # do not change
+operationMode=1  # do not change
 
 
 # Configuration
-simID=0
+simId=0
 scenario=0
 retain=0
-number_of_samples=9400000
+numberOfSamples=9400000
 
 module load anaconda
 source activate CFmMIMO_PC
 
-python CFmMIMO_PC.py --simulationID $simID --samples $number_of_samples --mode $operation_mode --scenario $scenario --retain $retain --host $triton
+python cellFreeMassMimoPowCtrl.py --simulationId $simId --samples $numberOfSamples --mode $operationMode --scenario $scenario --retain $retain --host $triton

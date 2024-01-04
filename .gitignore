@@ -10,7 +10,7 @@
 # ignore the following folders and their content
 venv/
 __pycache__/
-models_sc_*/
-simID_*/
+modelsSc*/
+simId*/
 lightning_logs/
 .vscode/

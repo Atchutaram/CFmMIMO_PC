@@ -2,7 +2,14 @@ from enum import IntEnum, auto
 
 
 class OperatingModes(IntEnum):
-    TRAINING  = auto()  # generates training data and perform training and save trained NN model
-    TESTING  = auto()  # Performs dataGen and test for all the algos for given scenarios. The DL algo uses the trained NN model
-    PLOTTING_ONLY = auto()  # this is needs test data. So it should be run atleast once before plotting.
-    ALL = auto()  # Performs training and then testing.
+    # generates training data and perform training and save trained NN model
+    TRAINING  = auto()
+    
+    # Performs dataGen and test for all the algos for given scenarios. The DL algo uses the trained NN model
+    TESTING  = auto()
+    
+    # This is needs test data. So it should be run at least once before plotting.
+    PLOTTING_ONLY = auto()
+    
+    # Performs training, testing, and then plotting.
+    ALL = auto()
