@@ -6,7 +6,7 @@ from utils.handleInputArgs import Args
 from utils.utils import cleanFolders
 
 defaultNumberOfSamples = 500
-testingNumberOfSamples = 500
+testingNumberOfSamples = 10
 
 # Handling command-line arguments
 args = Args(defaultNumberOfSamples, )
