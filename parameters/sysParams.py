@@ -7,28 +7,28 @@ class SystemParameters:
         defaultModels = ['ANN', 'FCN']
         if simulationParameters.scenario==0:
             coverageArea = 0.01  # in sq.Km
-            numberOfUsers = 4
+            maxNumberOfUsers = 4
             accessPointDensity = 2000
             
             models = defaultModels
 
         elif simulationParameters.scenario==1:
             coverageArea = 0.1  # in sq.Km
-            numberOfUsers = 20
+            maxNumberOfUsers = 20
             accessPointDensity = 2000
 
             models = defaultModels
             
         elif simulationParameters.scenario==2:
             coverageArea = 0.1
-            numberOfUsers = 40
+            maxNumberOfUsers = 40
             accessPointDensity = 2000
 
             models = defaultModels
             
         elif simulationParameters.scenario==3:
             coverageArea = 1
-            numberOfUsers = 500
+            maxNumberOfUsers = 500
             accessPointDensity = 2000
             models = ['ANN',]  # Plan is to do ['AE-FCN', 'ANN']
 
@@ -72,14 +72,19 @@ class SystemParameters:
         self.Tc = 200
 
         
-        self.numberOfAntennas = 1  # N
+        self.numberOfAntennas = 4  # N
         self.coverageArea = torch.tensor(
                                             coverageArea,
                                             requires_grad=False,
                                             device=simulationParameters.device,
                                             dtype=torch.float32
                                         )  # D
-        self.numberOfUsers = numberOfUsers  # K
+        self.maxNumberOfUsers = maxNumberOfUsers  # K
+        
+        self.minNumberOfUsers = self.maxNumberOfUsers
+        if simulationParameters.varyingNumberOfUsersFlag:
+            self.minNumberOfUsers = (self.maxNumberOfUsers//2)
+            
         self.accessPointDensity = accessPointDensity
         self.models = models
         simulationParameters.handleModelSubFolders(self.models)
@@ -88,7 +93,7 @@ class SystemParameters:
         self.areaHeight = self.areaWidth
         self.numberOfAccessPoints = round(accessPointDensity*self.coverageArea.item())  # M
         print(f"""Number of APs: {self.numberOfAccessPoints}
-Number of users: {self.numberOfUsers}""")
+Number of users: {self.maxNumberOfUsers}""")
 
         torch.manual_seed(seed=0)
         randomMat = torch.normal(0, 1, (self.Tp, self.Tp))

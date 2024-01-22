@@ -55,7 +55,14 @@ def dataGen(simulationParameters, systemParameters, sampleId, validationData=Fal
     device = simulationParameters.device
     areaWidth = systemParameters.areaWidth
     areaHeight = systemParameters.areaHeight
-    numberOfUsers = systemParameters.numberOfUsers
+    if not simulationParameters.varyingNumberOfUsersFlag:
+        numberOfUsers = systemParameters.maxNumberOfUsers
+    else:
+        numberOfUsers = torch.randint(
+                                            systemParameters.minNumberOfUsers,
+                                            systemParameters.maxNumberOfUsers + 1,
+                                            (1, )
+                                    ).item()
 
     userConfig = getUserConfig(areaWidth, areaHeight, numberOfUsers, device)  # get user positions
     # distance mat for each pair of AP and user

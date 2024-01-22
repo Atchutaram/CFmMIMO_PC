@@ -25,27 +25,27 @@ def deploy(model, testSample, phiCrossMat, modelName, device):
     
 
     with torch.no_grad():
+        actualNumberOfUsers = phiCrossMat.size(-1)
+        padUsers = model.maxNumberOfUsers - actualNumberOfUsers
+        phiCrossMatPadded = F.pad(phiCrossMat, (0, padUsers, 0, padUsers), 'constant', 0)
+        testSample = F.pad(testSample, (0, padUsers, 0, 0), 'constant', model.PAD_CONST)
+        
         testSample = torch.log(testSample)
-        if not modelName == 'ANN' and not modelName == 'FCN':
-            sc = pickle.load(open(module.HyperParameters.scPath, 'rb'))
-            
-
         testSampleShape = testSample.shape
         testSample = testSample.reshape((1,-1)).to(device='cpu')
-        if not modelName == 'ANN' and not modelName == 'FCN':
-            testSample = sc.transform(testSample)[0]
-            testSample = torch.tensor(
-                                            testSample,
-                                            device=device,
-                                            requires_grad=False,
-                                            dtype=torch.float32
-                                    ).view(testSampleShape)
-        else:
-            testSample.requires_grad=False
-            testSample = testSample.to(device=device, dtype=torch.float32).view(testSampleShape)
+        testSample.requires_grad=False
+        testSample = testSample.to(device=device, dtype=torch.float32).view(testSampleShape)
         model.eval()
         model.to(device=device)
-        mus_predicted = model([testSample, phiCrossMat.to(device=device, dtype=torch.float32)])
+        
+        mus_predicted = model(
+                                    [
+                                        testSample,
+                                        phiCrossMatPadded.to(device=device, dtype=torch.float32)
+                                    ]
+                            )
+        
+        mus_predicted = mus_predicted[:,:,:actualNumberOfUsers]
         return mus_predicted
 
 def initializeHyperParams(modelName, simulationParameters, systemParameters):

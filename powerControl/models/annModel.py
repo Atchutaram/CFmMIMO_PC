@@ -75,7 +75,9 @@ class NeuralNet(RootNet):
         x = torch.nn.functional.softplus(x, beta = 2)
         
         y = torch.exp(-x)
-        
+        diagonals = torch.diagonal(mask, dim1=-2, dim2=-1)
+        modifiedMask = torch.squeeze(torch.diag_embed(diagonals, dim1=-2, dim2=-1))
+        y = y @ modifiedMask
         output = project2s(y, self.N_invRoot)
         
         return output

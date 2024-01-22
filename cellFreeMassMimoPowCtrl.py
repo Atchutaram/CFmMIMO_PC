@@ -6,7 +6,7 @@ from utils.handleInputArgs import Args
 from utils.utils import cleanFolders
 
 defaultNumberOfSamples = 500
-testingNumberOfSamples = 10
+testingNumberOfSamples = 500
 
 # Handling command-line arguments
 args = Args(defaultNumberOfSamples, )
@@ -30,10 +30,8 @@ from powerControl.testing import testAndPlot
 def dataGenAndTest(args, orth):
     if orth:
         args.setOrthogonalityFlag()
-        orthText = 'orthogonal case'
     else:
         args.resetOrthogonalityFlag()
-        orthText = 'non orthogonal case'
 
     simulationParameters = SimulationParameters(args)
     systemParameters = SystemParameters(simulationParameters)

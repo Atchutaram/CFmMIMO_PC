@@ -166,10 +166,6 @@ class Args():
     )
     
     def preCheck(self):
-        
-        if self.varyingNumberOfUsersFlag:
-            print("Varying user's feature is currently unavailable!")
-            exit()
 
         if self.orthogonalityFlag and self.scenario >= 2:
             print('Orthogonality flag cannot be True for these scenarios! So, it is set to False.')
