@@ -6,13 +6,16 @@ from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 import math
+import torch.nn.functional as F
 
 class RootDataset(Dataset):
-    def __init__(self, dataPath, phiOrth, numSamples):
+    def __init__(self, dataPath, phiOrth, numSamples, maxNumberOfUsers, PAD_CONST):
         self.path = dataPath
         _, _, files = next(os.walk(self.path))
         self.numSamples = min(len(list(filter(lambda k: 'betas' in k, files))), numSamples)
         self.phiOrth = phiOrth
+        self.maxNumberOfUsers = maxNumberOfUsers
+        self.PAD_CONST = PAD_CONST
         
     def __getitem__(self, index):
         betaFileName = f'betasSample{index}.pt'
@@ -24,11 +27,16 @@ class RootDataset(Dataset):
         phi = torch.index_select(self.phiOrth, 0, pilotSequence)
         phiCrossMat = torch.abs(phi.conj() @ phi.T)
         
-        betaTorch = torch.log(betaOriginal)
+        actualNumberOfUsers = phiCrossMat.size(-1)
+        padUsers = self.maxNumberOfUsers - actualNumberOfUsers
+        phiCrossMatPadded = F.pad(phiCrossMat, (0, padUsers, 0, padUsers), 'constant', 0)
+        betaOriginalPadded = F.pad(betaOriginal, (0, padUsers, 0, 0), 'constant', self.PAD_CONST)
+        
+        betaTorch = torch.log(betaOriginalPadded)
         betaTorch = betaTorch.to(dtype=torch.float32)
-        betaTorch = betaTorch.reshape(betaOriginal.shape)
+        betaTorch = betaTorch.reshape(betaOriginalPadded.shape)
 
-        return phiCrossMat, betaTorch, betaOriginal
+        return phiCrossMatPadded, betaTorch, betaOriginalPadded, actualNumberOfUsers
 
     def __len__(self):
         return self.numSamples
@@ -38,8 +46,9 @@ class CommonParameters:
     numSamples = 1
     batchSize = 1024
     numEpochs = 4*4
+    numEpochs = 1
 
-    learningRate =3e-4
+    learningRate = 1e-4
     
     # Params related to varying step size
     VARYING_STEP_SIZE = True
@@ -50,7 +59,7 @@ class CommonParameters:
     @classmethod
     def preInt(cls, simulationParameters, systemParameters):
         cls.M = systemParameters.numberOfAccessPoints
-        cls.K = systemParameters.numberOfUsers
+        cls.K = systemParameters.maxNumberOfUsers
         
         cls.numSamples = simulationParameters.numberOfSamples
         cls.trainingDataPath = simulationParameters.dataFolder
@@ -78,11 +87,13 @@ class RootNet(pl.LightningModule):
         self.grads = grads
         self.relu = nn.ReLU()
         self.name = None
+        self.maxNumberOfUsers = self.systemParameters.maxNumberOfUsers
+        self.PAD_CONST = 6e-10
         
     
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
-        phiCrossMat, betaTorch, betaOriginal = batch
+        phiCrossMat, betaTorch, betaOriginal, actualNumberOfUsers = batch
 
         opt.zero_grad()
         mus = self([betaTorch, phiCrossMat])
@@ -107,7 +118,7 @@ class RootNet(pl.LightningModule):
     
 
     def validation_step(self, batch, batch_idx):
-        phiCrossMat, betaTorch, betaOriginal = batch
+        phiCrossMat, betaTorch, betaOriginal, actualNumberOfUsers = batch
 
         mus = self([betaTorch, phiCrossMat])
 
@@ -155,7 +166,9 @@ class RootNet(pl.LightningModule):
         trainDataset = self.InpDataset(
                                             dataPath=self.dataPath,
                                             phiOrth=self.systemParameters.phiOrth,
-                                            numSamples=self.numSamples
+                                            numSamples=self.numSamples,
+                                            maxNumberOfUsers = self.maxNumberOfUsers,
+                                            PAD_CONST = self.PAD_CONST,
                                     )
         trainLoader = DataLoader(dataset=trainDataset, batch_size=self.batchSize, shuffle=True)
         return trainLoader
@@ -164,7 +177,9 @@ class RootNet(pl.LightningModule):
         valDataset = self.InpDataset(
                                         dataPath=self.valDataPath,
                                         phiOrth=self.systemParameters.phiOrth,
-                                        numSamples=self.numSamples
+                                        numSamples=self.numSamples,
+                                        maxNumberOfUsers = self.maxNumberOfUsers,
+                                        PAD_CONST = self.PAD_CONST,
                                     )
         valLoader = DataLoader(dataset=valDataset, batch_size=self.batchSize, shuffle=False)
         return valLoader

@@ -5,8 +5,8 @@ from parameters.modes import OperatingModes
 from utils.handleInputArgs import Args
 from utils.utils import cleanFolders
 
-defaultNumberOfSamples = 500
-testingNumberOfSamples = 10
+defaultNumberOfSamples = 50
+testingNumberOfSamples = 50
 
 # Handling command-line arguments
 args = Args(defaultNumberOfSamples, )
@@ -27,14 +27,8 @@ from powerControl.learning import train
 from powerControl.testing import testAndPlot
 
 
-def dataGenAndTest(args, orth):
-    if orth:
-        args.setOrthogonalityFlag()
-        orthText = 'orthogonal case'
-    else:
-        args.resetOrthogonalityFlag()
-        orthText = 'non orthogonal case'
-
+def dataGenAndTest(args):
+    
     simulationParameters = SimulationParameters(args)
     systemParameters = SystemParameters(simulationParameters)
 
@@ -82,9 +76,14 @@ if __name__ == '__main__':
             args.setOperatingMode(OperatingModes.TESTING)
             args.setNumberOfSamples(testingNumberOfSamples)
             
-            dataGenAndTest(args, orth=False) # runs for all scenarios
-            if not args.scenario >= 2:
-                dataGenAndTest(args, orth=True) # runs for scenarios where orthogonality is possible
+            simulationParameters = SimulationParameters(args)
+            systemParameters = SystemParameters(simulationParameters)
+
+            if not os.listdir(simulationParameters.dataFolder):
+                for sampleId in range(args.numberOfSamples):
+                    dataGen(simulationParameters, systemParameters, sampleId)
+
+            testAndPlot(simulationParameters, systemParameters, plottingOnly=False)
 
     elif simulationParameters.operationMode==OperatingModes.TESTING:
         testAndPlot(simulationParameters, systemParameters, plottingOnly=False)

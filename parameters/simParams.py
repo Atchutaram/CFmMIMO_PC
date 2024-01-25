@@ -1,7 +1,6 @@
 import os
 import torch
 import sys
-from warnings import warn
 
 from utils.utils import handleDeletionAndCreation
 from parameters.modes import OperatingModes
@@ -21,7 +20,7 @@ class SimulationParameters:
             scenario,
             retain,
             resultsBase,
-            orthogonalityFlag,
+            randomPilotsFlag,
             varyingNumberOfUsersFlag
         ) = (
                 args.root,
@@ -31,7 +30,7 @@ class SimulationParameters:
                 args.scenario,
                 args.retain,
                 args.resultsBase,
-                args.orthogonalityFlag,
+                args.randomPilotsFlag,
                 args.varyingNumberOfUsersFlag
             )
         
@@ -40,7 +39,7 @@ class SimulationParameters:
         self.operationMode = operatingMode
         self.modelFolder = f'modelsSc{scenario}'
         self.scenario = scenario
-        self.orthogonalityFlag = orthogonalityFlag
+        self.randomPilotsFlag = randomPilotsFlag
         self.varyingNumberOfUsersFlag = varyingNumberOfUsersFlag
         
         if (torch.cuda.is_available() and (not (self.operationMode==OperatingModes.TESTING))):
@@ -60,14 +59,10 @@ class SimulationParameters:
             print('rootPath failure!')
             sys.exit()
         
-        orthTag = "Orth" if self.orthogonalityFlag else "NonOrth"
         if (self.operationMode == OperatingModes.TRAINING):
             self.baseFolder = 'dataLogsTraining'
-            if self.orthogonalityFlag:
-                warn('Warning: Orthogonality flag is forced to False for training!')
-            self.orthogonalityFlag = False
         else:
-            self.baseFolder = 'dataLogsTesting' + orthTag
+            self.baseFolder = 'dataLogsTesting'
 
         simIdName = f'simId{simulationId}'
         self.baseFolderPath = os.path.join(self.rootPath, simIdName, self.baseFolder)
@@ -84,8 +79,8 @@ class SimulationParameters:
         self.dataFolder = os.path.join(self.baseFolderPath, "betas")
         self.validationDataFolder = os.path.join(self.baseFolderPath, "betasVal")
         if not operatingMode==OperatingModes.TRAINING:
-            self.resultsFolder = os.path.join(self.resultsBase, ("results"+orthTag))
-            self.plotFolder = os.path.join(self.resultsBase, ("plots"+orthTag))
+            self.resultsFolder = os.path.join(self.resultsBase, "results")
+            self.plotFolder = os.path.join(self.resultsBase, "plots")
         
 
         if not self.operationMode == OperatingModes.PLOTTING_ONLY:
