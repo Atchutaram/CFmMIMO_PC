@@ -63,12 +63,14 @@ def apgAlgo(betas, N, zeta_d, Tp, Tc, phiCrossMat, vMat, tau, device):
         s = z - y
         r = grad_f(betas, z, N, zeta_d, Tp, Tc, phiCrossMat, vMat, tau, device)[0]\
                 - grad_f(betas, y, N, zeta_d, Tp, Tc, phiCrossMat, vMat, tau, device)[0]
-        alpha_y = torch.dot(s.flatten(), s.flatten()) / torch.dot(s.flatten(), r.flatten())
+        denTemp = torch.dot(s.flatten(), r.flatten()) + epsilon
+        alpha_y = torch.dot(s.flatten(), s.flatten()) / denTemp
 
         s = v - musVecOld
         r = grad_f(betas, v, N, zeta_d, Tp, Tc, phiCrossMat, vMat, tau, device)[0]\
                 - grad_f(betas, musVecOld, N, zeta_d, Tp, Tc, phiCrossMat, vMat, tau, device)[0]
-        alpha_mu = torch.dot(s.flatten(), s.flatten()) / torch.dot(s.flatten(), r.flatten())
+        denTemp = torch.dot(s.flatten(), r.flatten()) + epsilon
+        alpha_mu = torch.dot(s.flatten(), s.flatten()) / denTemp
 
         alpha_y = torch.abs(alpha_y)
         alpha_mu = torch.abs(alpha_mu)

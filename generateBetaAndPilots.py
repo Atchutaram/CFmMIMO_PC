@@ -75,12 +75,18 @@ def dataGen(simulationParameters, systemParameters, sampleId, validationData=Fal
     log_d1 = systemParameters.log_d1
     sigma_sh = systemParameters.sigma_sh
     betas = getLSFs(L, d0, d1, log_d0, log_d1, sigma_sh, dMat, device)
-
-    if simulationParameters.orthogonalityFlag:
-        pilotSequence = torch.arange(0, numberOfUsers)
+    
+    torch.seed()
+    if simulationParameters.randomPilotsFlag:
+        reUsedPilotAllocation = torch.randint(0, systemParameters.Tp, (numberOfUsers,))
     else:
-        torch.seed()
-        pilotSequence = torch.randint(0, systemParameters.Tp, [numberOfUsers])
+        additionalNumOfUsers = numberOfUsers - systemParameters.Tp
+        uniquePilotAllocation = torch.randperm(systemParameters.Tp)
+        if additionalNumOfUsers<=0:
+            pilotSequence = uniquePilotAllocation[:numberOfUsers]
+        else:
+            reUsedPilotAllocation = torch.randint(0, systemParameters.Tp, (additionalNumOfUsers,))
+            pilotSequence = torch.cat((uniquePilotAllocation, reUsedPilotAllocation), dim=0)
     
 
     # Save the RX data and original channel matrix.

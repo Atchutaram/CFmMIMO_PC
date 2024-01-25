@@ -46,6 +46,7 @@ class CommonParameters:
     numSamples = 1
     batchSize = 1024
     numEpochs = 4*4
+    numEpochs = 1
 
     learningRate = 1e-4
     

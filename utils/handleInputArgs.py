@@ -95,12 +95,12 @@ class Args():
             )
 
         parser.add_argument(
-                '-o',
-                '--orthogonality',
+                '-rp',
+                '--randomPilotsFlag',
                 choices={"0", "1"},
-                help='Choose 1 for orthogonal pilot and choose 0 for others.',
+                help='Choose 1 for random pilots and choose 0 for others.',
                 default="0",
-                metavar='orthogonality',
+                metavar='randomPilotsFlag',
             )
 
         parser.add_argument(
@@ -122,7 +122,7 @@ class Args():
             )
 
         parser.add_argument(
-                '-r',
+                '-re',
                 '--retain',
                 choices={"0", "1"},
                 help=('Choose 1 to retain the input data for training and choose 0 for overwriting'
@@ -147,7 +147,7 @@ class Args():
             self.numberOfSamples,
             self.operatingMode,
             self.scenario,
-            self.orthogonalityFlag,
+            self.randomPilotsFlag,
             self.varyingNumberOfUsersFlag,
             self.host,
             self.retain,
@@ -157,19 +157,13 @@ class Args():
                 args.samples,
                 args.mode,
                 args.scenario,
-                args.orthogonality,
+                args.randomPilotsFlag,
                 args.varK,
                 args.host,
                 args.retain,
                 args.clean
             )
     )
-    
-    def preCheck(self):
-
-        if self.orthogonalityFlag and self.scenario >= 2:
-            print('Orthogonality flag cannot be True for these scenarios! So, it is set to False.')
-            exit()
             
     def preProcessArgs(self, testingNumberOfSamples):
         
@@ -185,10 +179,9 @@ class Args():
             self.setNumberOfSamples(testingNumberOfSamples)
 
         self.retain = (self.retain==1)  # Translating {0, 1} to {False, True}
-        self.orthogonalityFlag = (self.orthogonalityFlag == 1)
+        self.randomPilotsFlag = (self.randomPilotsFlag == 1)
         self.varyingNumberOfUsersFlag = (self.varyingNumberOfUsersFlag == 1)
         
-        self.preCheck()
     
     def setRootDir(self):
         from utils.utils import handleDeletionAndCreation
@@ -213,12 +206,6 @@ class Args():
             
         self.root = root
         self.resultsBase = resultsBase
-    
-    def resetOrthogonalityFlag(self):
-        self.orthogonalityFlag = False
-    
-    def setOrthogonalityFlag(self):
-        self.orthogonalityFlag = True
     
     def setNumberOfSamples(self, testingNumberOfSamples):
         self.numberOfSamples = testingNumberOfSamples
