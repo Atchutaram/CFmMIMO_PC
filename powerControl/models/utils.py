@@ -20,7 +20,7 @@ def initializeWeights(m):
 
 def deploy(model, testSample, phiCrossMat, modelName, device):
     importPath = findImportPath(modelName)
-    module = importlib.import_module(importPath, ".")  # imports the scenarios
+    # module = importlib.import_module(importPath, ".")  # imports the scenarios
     
     
 
@@ -51,7 +51,7 @@ def deploy(model, testSample, phiCrossMat, modelName, device):
 def initializeHyperParams(modelName, simulationParameters, systemParameters):
     # Ex: If model_name is 'ANN', it imports ANN_model module and initializes its hyper parameters.
     importPath = findImportPath(modelName)
-    module = importlib.import_module(importPath, ".")  # imports the scenarios
+    module = importlib.import_module(importPath, ".")  # imports the Models
     
     module.HyperParameters.initialize(simulationParameters, systemParameters)
 
@@ -64,7 +64,7 @@ def loadTheLatestModelAndParamsIfExists(
                                         ):
     # For Training mode, the function first imports the appropriate model and initializes weights
     importPath = findImportPath(modelName)
-    module = importlib.import_module(importPath, ".")  # imports the scenarios
+    module = importlib.import_module(importPath, ".")  # imports the Models
         
     model = module.NeuralNet(systemParameters, grads)
     model.apply(initializeWeights)

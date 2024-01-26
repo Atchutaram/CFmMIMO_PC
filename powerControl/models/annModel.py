@@ -21,8 +21,14 @@ class HyperParameters(CommonParameters):
         cls.heads = 5
         if (simulationParameters.scenario == 0):
             M2 = 16*cls.heads
-        else:
+        elif (
+                    (simulationParameters.scenario == 1) or
+                    (simulationParameters.scenario == 2) or
+                    (simulationParameters.scenario == 3)
+            ):
             M2 = 200*cls.heads
+        else:
+            raise('Invalid Scenario Configuration')
         cls.M2 = int(1 / (1-cls.dropout))*M2
 
     

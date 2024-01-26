@@ -9,7 +9,7 @@ def fullCDFPlots(resultsFolder, algoList, plotFolder, scenario):
     fig, ax = plt.subplots()
     fig2, ax2 = plt.subplots()
 
-    scenarioName = f'scenario{scenario}'
+    scenarioName = f'scenario {scenario}'
 
     seOut = [[] for _ in algoList]
     for file in os.listdir(resultsFolder):

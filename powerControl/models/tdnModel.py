@@ -23,11 +23,15 @@ class HyperParameters(CommonParameters):
         cls.numberOfAPs = cls.M
         
         if (simulationParameters.scenario == 0):
-            cls.hiddenSize = int((1/(1-cls.dropout))*cls.K*1)
+            cls.hiddenSize = int((1/(1-cls.dropout))*cls.K*11)
         elif (simulationParameters.scenario == 1):
-            cls.hiddenSize = int((1/(1-cls.dropout))*cls.K*1)
+            cls.hiddenSize = int((1/(1-cls.dropout))*cls.K*9)
+        elif (simulationParameters.scenario == 2):
+            cls.hiddenSize = int((1/(1-cls.dropout))*cls.K*5)
+        elif (simulationParameters.scenario == 3):
+            cls.hiddenSize = int((1/(1-cls.dropout))*cls.K*2)
         else:
-            cls.hiddenSize = int((1/(1-cls.dropout))*cls.K*1)
+            raise('Invalid Scenario Configuration')
 
         cls.outputShape = (-1, cls.M, cls.K)
         
@@ -55,16 +59,27 @@ class NeuralNet(RootNet):
         self.outputShape = HyperParameters.outputShape
         self.dropout = HyperParameters.dropout
         self.numberOfAPs = HyperParameters.numberOfAPs
+
+        self.norm1 = Norm(self.inputSize)
         
         self.fcns = nn.ModuleList()
         for _ in range(self.numberOfAPs):
             self.fcns.append(
                 nn.Sequential(
                     nn.Linear(self.inputSize, self.hiddenSize),
+                    Norm(self.hiddenSize),
                     nn.ReLU(),
                     nn.Linear(self.hiddenSize, self.hiddenSize),
+                    Norm(self.hiddenSize),
                     nn.ReLU(),
-                    nn.Linear(self.hiddenSize, self.inputSize),
+                    nn.Linear(self.hiddenSize, self.hiddenSize),
+                    Norm(self.hiddenSize),
+                    nn.ReLU(),
+                    nn.Linear(self.hiddenSize, self.hiddenSize),
+                    Norm(self.hiddenSize),
+                    nn.ReLU(),
+                    nn.Linear(self.hiddenSize, self.outputSize),
+                    # Norm(self.outputSize),
                     )
             )
 
@@ -73,6 +88,7 @@ class NeuralNet(RootNet):
 
     def forward(self, x):
         x, _ = x
+        x = self.norm1(x)
         x = torch.unsqueeze(x, 1)
         output = []
         for m, FCN in enumerate(self.fcns):
@@ -80,7 +96,11 @@ class NeuralNet(RootNet):
             
             outputTemp = torch.nn.functional.softplus(outputTemp + 6, beta = 2)
             outputTemp = torch.exp(-outputTemp)
+            norms = torch.norm(outputTemp, p=2, dim=1, keepdim=True)
+            outputTemp = self.N_invRoot * outputTemp / norms
             output.append(torch.unsqueeze(outputTemp, 0))
         
         output = torch.transpose(torch.cat(output), 0, 1)
+        
+        # output = project2s(output, self.N_invRoot)
         return output

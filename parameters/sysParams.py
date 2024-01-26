@@ -27,10 +27,19 @@ class SystemParameters:
             models = defaultModels
             
         elif simulationParameters.scenario==3:
-            coverageArea = 1
-            maxNumberOfUsers = 500
+            coverageArea = 0.1
+            maxNumberOfUsers = 80
             accessPointDensity = 2000
-            models = ['ANN',]  # Plan is to do ['AE-FCN', 'ANN']
+
+            models = defaultModels
+            
+        # elif simulationParameters.scenario==4:
+        #     coverageArea = 1
+        #     maxNumberOfUsers = 500
+        #     accessPointDensity = 2000
+        #     models = ['ANN',]  # Plan is to do ['AE-FCN', 'ANN']
+        else:
+            raise('Invalid Scenario Configuration')
 
 
         self.param_L = torch.tensor(

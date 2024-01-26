@@ -87,7 +87,7 @@ class Args():
         parser.add_argument(
                 '-sc',
                 '--scenario',
-                choices={"0", "1", "2"},
+                choices={"0", "1", "2", "3"},
                 help=('Takes [0-2] as input to pick one of the two scenarios described'
                       'in the paper.'),
                 default="0",

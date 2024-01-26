@@ -46,7 +46,7 @@ class CommonParameters:
     numSamples = 1
     batchSize = 1024
     numEpochs = 4*4
-    numEpochs = 1
+    # numEpochs = 1
 
     learningRate = 1e-4
     
@@ -67,7 +67,7 @@ class CommonParameters:
         cls.scenario = simulationParameters.scenario
         cls.dropout = 0
         
-        if (simulationParameters.operationMode == 2) or (cls.scenario > 2):
+        if (simulationParameters.operationMode == 2) or (cls.scenario > 3):
             cls.batchSize = 1  # for either large-scale systems or for testing mode
         
 
@@ -93,7 +93,7 @@ class RootNet(pl.LightningModule):
     
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
-        phiCrossMat, betaTorch, betaOriginal, actualNumberOfUsers = batch
+        phiCrossMat, betaTorch, betaOriginal, _ = batch
 
         opt.zero_grad()
         mus = self([betaTorch, phiCrossMat])
@@ -118,7 +118,7 @@ class RootNet(pl.LightningModule):
     
 
     def validation_step(self, batch, batch_idx):
-        phiCrossMat, betaTorch, betaOriginal, actualNumberOfUsers = batch
+        phiCrossMat, betaTorch, betaOriginal, _ = batch
 
         mus = self([betaTorch, phiCrossMat])
 

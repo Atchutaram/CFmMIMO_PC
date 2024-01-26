@@ -26,8 +26,12 @@ class HyperParameters(CommonParameters):
             cls.hiddenSize = int((1/(1-cls.dropout))*MK*4)
         elif (simulationParameters.scenario == 1):
             cls.hiddenSize = int((1/(1-cls.dropout))*MK/2)
-        else:
+        elif (simulationParameters.scenario == 2):
             cls.hiddenSize = int((1/(1-cls.dropout))*MK/7)
+        elif (simulationParameters.scenario == 3):
+            cls.hiddenSize = int((1/(1-cls.dropout))*MK/28)
+        else:
+            raise('Invalid Scenario Configuration')
 
         cls.outputShape = (-1, cls.M, cls.K)
         
