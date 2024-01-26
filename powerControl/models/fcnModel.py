@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-import os
-from sklearn.preprocessing import StandardScaler
 
 from .rootModel import CommonParameters, RootNet
 from .utils import Norm
@@ -14,7 +12,7 @@ MODEL_NAME = 'FCN'
 class HyperParameters(CommonParameters):
 
     @classmethod
-    def intialize(cls, simulationParameters, systemParameters):
+    def initialize(cls, simulationParameters, systemParameters):
         
         cls.preInt(simulationParameters, systemParameters)
 

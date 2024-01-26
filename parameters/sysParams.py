@@ -4,7 +4,7 @@ import torch
 class SystemParameters:
     
     def __init__(self, simulationParameters):
-        defaultModels = ['ANN', 'FCN']
+        defaultModels = ['ANN', 'FCN', 'TDN']
         if simulationParameters.scenario==0:
             coverageArea = 0.01  # in sq.Km
             maxNumberOfUsers = 4

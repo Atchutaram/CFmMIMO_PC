@@ -13,7 +13,7 @@ MODEL_NAME = 'ANN'
 class HyperParameters(CommonParameters):
 
     @classmethod
-    def intialize(cls, simulationParameters, systemParameters):
+    def initialize(cls, simulationParameters, systemParameters):
         
         cls.preInt(simulationParameters, systemParameters)
 

@@ -53,7 +53,7 @@ def initializeHyperParams(modelName, simulationParameters, systemParameters):
     importPath = findImportPath(modelName)
     module = importlib.import_module(importPath, ".")  # imports the scenarios
     
-    module.HyperParameters.intialize(simulationParameters, systemParameters)
+    module.HyperParameters.initialize(simulationParameters, systemParameters)
 
 def loadTheLatestModelAndParamsIfExists(
                                             modelName,
@@ -62,7 +62,7 @@ def loadTheLatestModelAndParamsIfExists(
                                             grads,
                                             isTesting=False
                                         ):
-    # For Training mode, the function first imports the approriate model and initializes weights
+    # For Training mode, the function first imports the appropriate model and initializes weights
     importPath = findImportPath(modelName)
     module = importlib.import_module(importPath, ".")  # imports the scenarios
         
