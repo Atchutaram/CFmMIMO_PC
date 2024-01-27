@@ -23,4 +23,4 @@ randomPilotsFlag=0
 module load anaconda
 source activate CFmMIMO_PC
 
-python cellFreeMassMimoPowCtrl.py --simulationId $simId --samples $numberOfSamples --mode $operationMode --scenario $scenario --retain $retain --host $triton --varK varK --randomPilotsFlag randomPilotsFlag
+python cellFreeMassMimoPowCtrl.py --simulationId $simId --samples $numberOfSamples --mode $operationMode --scenario $scenario --retain $retain --host $triton --varK $varK --randomPilotsFlag $randomPilotsFlag
