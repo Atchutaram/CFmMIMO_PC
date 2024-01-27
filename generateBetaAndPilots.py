@@ -78,7 +78,7 @@ def dataGen(simulationParameters, systemParameters, sampleId, validationData=Fal
     
     torch.seed()
     if simulationParameters.randomPilotsFlag:
-        reUsedPilotAllocation = torch.randint(0, systemParameters.Tp, (numberOfUsers,))
+        pilotSequence = torch.randint(0, systemParameters.Tp, (numberOfUsers,))
     else:
         additionalNumOfUsers = numberOfUsers - systemParameters.Tp
         uniquePilotAllocation = torch.randperm(systemParameters.Tp)
