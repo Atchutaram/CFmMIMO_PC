@@ -12,7 +12,7 @@ def cleanFolders():
     import glob
     from utils.utils import deleteFolder
     
-    dirs = glob.glob("simID*/")
+    dirs = glob.glob("simId*/")
     deleteFolder(*dirs)
     
     print(f"Cleaned all! ")

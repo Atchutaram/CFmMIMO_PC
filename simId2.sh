@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --time=120:00:00
+#SBATCH --time=23:00:00
 #SBATCH --job-name=simId2
-#SBATCH --mem-per-cpu=80G
+#SBATCH --mem-per-cpu=10G
 #SBATCH --cpus-per-task=1
 #SBATCH --gres=gpu:1
 #SBATCH --output=simId2.out
