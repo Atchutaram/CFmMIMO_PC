@@ -17,19 +17,18 @@ class HyperParameters(CommonParameters):
         cls.preInt(simulationParameters, systemParameters)
 
         #  Room for any additional model-specific configurations
-        cls.dropout = 0
         cls.inputSize = cls.K
         cls.outputSize = cls.K
         cls.numberOfAPs = cls.M
         
         if (simulationParameters.scenario == 0):
-            cls.hiddenSize = int((1/(1-cls.dropout))*cls.K*11)
+            cls.hiddenSize = cls.K*11
         elif (simulationParameters.scenario == 1):
-            cls.hiddenSize = int((1/(1-cls.dropout))*cls.K*9)
+            cls.hiddenSize = cls.K*9
         elif (simulationParameters.scenario == 2):
-            cls.hiddenSize = int((1/(1-cls.dropout))*cls.K*5)
+            cls.hiddenSize = cls.K*5
         elif (simulationParameters.scenario == 3):
-            cls.hiddenSize = int((1/(1-cls.dropout))*cls.K*2)
+            cls.hiddenSize = cls.K*2
         else:
             raise('Invalid Scenario Configuration')
 
@@ -49,15 +48,13 @@ class NeuralNet(RootNet):
         self.batchSize = HyperParameters.batchSize
         self.learningRate = HyperParameters.learningRate
         self.VARYING_STEP_SIZE = HyperParameters.VARYING_STEP_SIZE
-        self.gamma = HyperParameters.gamma
-        self.stepSize = HyperParameters.stepSize
+        self.lambdaLr = HyperParameters.lambdaLr
         
-        self.stepSize = HyperParameters.stepSize
+        
         self.inputSize = HyperParameters.inputSize
         self.hiddenSize = HyperParameters.hiddenSize
         self.outputSize = HyperParameters.outputSize
         self.outputShape = HyperParameters.outputShape
-        self.dropout = HyperParameters.dropout
         self.numberOfAPs = HyperParameters.numberOfAPs
 
         self.norm1 = Norm(self.inputSize)

@@ -2,11 +2,12 @@ import torch
 import torch.nn as nn
 import os
 from torch.utils.data import Dataset
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 import math
 import torch.nn.functional as F
+
 
 class RootDataset(Dataset):
     def __init__(self, dataPath, phiOrth, numSamples, maxNumberOfUsers, PAD_CONST):
@@ -46,14 +47,11 @@ class CommonParameters:
     numSamples = 1
     batchSize = 1024
     numEpochs = 4*4
-    # numEpochs = 1
 
-    learningRate = 1e-4
+    learningRate = 1e-1
     
     # Params related to varying step size
     VARYING_STEP_SIZE = True
-    gamma = 0.75  # LR decay multiplication factor
-    stepSize = 1 # for varying lr
     trainingDataPath = ''
 
     @classmethod
@@ -65,7 +63,14 @@ class CommonParameters:
         cls.trainingDataPath = simulationParameters.dataFolder
         cls.validationDataPath = simulationParameters.validationDataFolder
         cls.scenario = simulationParameters.scenario
-        cls.dropout = 0
+        
+        warmupSteps = 40
+        scaleFactor = 1
+
+        cls.lambdaLr = lambda step: scaleFactor * min(
+                                                            (step + 1) ** (-0.5),
+                                                            (step + 1) * warmupSteps ** (-1.5)
+                                                    )
         
         if (simulationParameters.operationMode == 2) or (cls.scenario > 3):
             cls.batchSize = 1  # for either large-scale systems or for testing mode
@@ -109,6 +114,9 @@ class RootNet(pl.LightningModule):
         
         self.manual_backward(mus, None, gradient=mus_grads)
         opt.step()
+        if self.VARYING_STEP_SIZE:
+            sch = self.lr_schedulers()
+            sch.step()
         
         with torch.no_grad():
             loss = -utility.mean() # loss is negative of the utility
@@ -133,22 +141,6 @@ class RootNet(pl.LightningModule):
         self.log('valLoss', loss, on_step=True, on_epoch=True, prog_bar=True)
         return {"valLoss": loss}
 
-    def on_train_epoch_end(self, *args, **kwargs):
-        # We are using this method to manipulate the learning rate according to our needs
-        skipLength = 1
-        LL=7
-        UL=10
-        if self.VARYING_STEP_SIZE:
-            sch = self.lr_schedulers()
-            if LL<=self.current_epoch<=UL and (self.current_epoch % skipLength==0):
-                sch.step()
-            # print('\nEpoch end', sch.get_last_lr())
-        else:
-            # print('\nEpoch end', self.learningRate)
-            pass
-
-        
-
     def backward(self, loss, *args, **kwargs):
         mus=loss
         mus_grads= kwargs['gradient']
@@ -156,9 +148,14 @@ class RootNet(pl.LightningModule):
         mus.backward((1/B)*mus_grads)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.learningRate) 
+        optimizer = torch.optim.Adam(
+                                        self.parameters(),
+                                        lr=self.learningRate,
+                                        betas=(0.9, 0.98),
+                                        eps=1e-9
+                                    )
         if self.VARYING_STEP_SIZE:
-            return [optimizer], [StepLR(optimizer, step_size=self.stepSize, gamma=self.gamma)]
+            return [optimizer], [LambdaLR(optimizer, lr_lambda=self.lambdaLr)]
         else:
             return optimizer
     

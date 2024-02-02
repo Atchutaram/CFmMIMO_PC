@@ -17,19 +17,18 @@ class HyperParameters(CommonParameters):
         cls.preInt(simulationParameters, systemParameters)
 
         #  Room for any additional model-specific configurations
-        cls.dropout = 0
         cls.inputSize = cls.M * cls.K
         cls.outputSize = cls.M * cls.K
         MK = 1 * cls.M * cls.K
         
         if (simulationParameters.scenario == 0):
-            cls.hiddenSize = int((1/(1-cls.dropout))*MK*4)
+            cls.hiddenSize = MK*4
         elif (simulationParameters.scenario == 1):
-            cls.hiddenSize = int((1/(1-cls.dropout))*MK/2)
+            cls.hiddenSize = int(MK/2)
         elif (simulationParameters.scenario == 2):
-            cls.hiddenSize = int((1/(1-cls.dropout))*MK/7)
+            cls.hiddenSize = int(MK/7)
         elif (simulationParameters.scenario == 3):
-            cls.hiddenSize = int((1/(1-cls.dropout))*MK/28)
+            cls.hiddenSize = int(MK/28)
         else:
             raise('Invalid Scenario Configuration')
 
@@ -47,21 +46,17 @@ class NeuralNet(RootNet):
         self.batchSize = HyperParameters.batchSize
         self.learningRate = HyperParameters.learningRate
         self.VARYING_STEP_SIZE = HyperParameters.VARYING_STEP_SIZE
-        self.gamma = HyperParameters.gamma
-        self.stepSize = HyperParameters.stepSize
+        self.lambdaLr = HyperParameters.lambdaLr
         
-        self.stepSize = HyperParameters.stepSize
         self.inputSize = HyperParameters.inputSize
         self.hiddenSize = HyperParameters.hiddenSize
         self.outputSize = HyperParameters.outputSize
         self.outputShape = HyperParameters.outputShape
-        self.dropout = HyperParameters.dropout
 
         self.hidden = lambda: nn.Sequential(
             nn.Linear(self.hiddenSize, self.hiddenSize),
             Norm(self.hiddenSize),
             nn.ReLU(),
-            nn.Dropout(p=self.dropout),
         )
         
         self.fcnFull = nn.Sequential(
@@ -69,7 +64,6 @@ class NeuralNet(RootNet):
             nn.Linear(self.inputSize, self.hiddenSize),
             Norm(self.hiddenSize),
             nn.ReLU(),
-            nn.Dropout(p=self.dropout),
             self.hidden(),
             nn.Linear(self.hiddenSize, self.outputSize),
             Norm(self.outputSize),

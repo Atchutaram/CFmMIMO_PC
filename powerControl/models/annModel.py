@@ -20,17 +20,15 @@ class HyperParameters(CommonParameters):
         #  Room for any additional model-specific configurations
         cls.heads = 5
         if (simulationParameters.scenario == 0):
-            M2 = 16*cls.heads
+            cls.M2 = 16*cls.heads
         elif (
                     (simulationParameters.scenario == 1) or
                     (simulationParameters.scenario == 2) or
                     (simulationParameters.scenario == 3)
             ):
-            M2 = 200*cls.heads
+            cls.M2 = 200*cls.heads
         else:
             raise('Invalid Scenario Configuration')
-        cls.M2 = int(1 / (1-cls.dropout))*M2
-
     
 
 class NeuralNet(RootNet):
@@ -44,19 +42,17 @@ class NeuralNet(RootNet):
         self.batchSize = HyperParameters.batchSize
         self.learningRate = HyperParameters.learningRate
         self.VARYING_STEP_SIZE = HyperParameters.VARYING_STEP_SIZE
-        self.gamma = HyperParameters.gamma
-        self.stepSize = HyperParameters.stepSize
+        self.lambdaLr = HyperParameters.lambdaLr
         
-        dropout = HyperParameters.dropout
         heads = HyperParameters.heads
         M2 = HyperParameters.M2
 
         self.norm1 = Norm(M)
         self.inpMapping = nn.Linear(M, M2)
         self.norm2 = Norm(M2)
-        self.layer1 = EncoderLayer(M2, heads=heads, dropout=dropout)
-        self.layer2 = EncoderLayer(M2, heads=heads, dropout=dropout)
-        self.layer3 = EncoderLayer(M2, heads=heads, dropout=dropout)
+        self.layer1 = EncoderLayer(M2, heads=heads)
+        self.layer2 = EncoderLayer(M2, heads=heads)
+        self.layer3 = EncoderLayer(M2, heads=heads)
         self.otpMapping = nn.Linear(M2, M)
         self.norm3 = Norm(M)
 
