@@ -23,6 +23,7 @@ class HyperParameters(CommonParameters):
         
         if (simulationParameters.scenario == 0):
             cls.hiddenSize = cls.K*11
+            cls.learningRate = 1e-1
         elif (simulationParameters.scenario == 1):
             cls.hiddenSize = cls.K*9
         elif (simulationParameters.scenario == 2):

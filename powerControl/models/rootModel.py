@@ -48,7 +48,7 @@ class CommonParameters:
     batchSize = 1024
     numEpochs = 4*4
 
-    learningRate = 1e-1
+    learningRate = 1e-2
     
     # Params related to varying step size
     VARYING_STEP_SIZE = True
