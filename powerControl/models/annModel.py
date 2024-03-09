@@ -21,7 +21,6 @@ class HyperParameters(CommonParameters):
         cls.heads = 5
         if (simulationParameters.scenario == 0):
             cls.M2 = 16*cls.heads
-            cls.learningRate = 1e-1
         elif (
                     (simulationParameters.scenario == 1) or
                     (simulationParameters.scenario == 2) or

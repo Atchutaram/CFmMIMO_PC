@@ -66,14 +66,32 @@ class CommonParameters:
         
         warmupSteps = 40
         scaleFactor = 1
-
-        cls.lambdaLr = lambda step: scaleFactor * min(
-                                                            (step + 1) ** (-0.5),
-                                                            (step + 1) * warmupSteps ** (-1.5)
-                                                    )
+        exp1 = -0.5
+        exp2 = -1.5
         
         if (simulationParameters.operationMode == 2) or (cls.scenario > 3):
             cls.batchSize = 1  # for either large-scale systems or for testing mode
+        
+        
+        if (simulationParameters.scenario == 0):
+            cls.learningRate = 1e-1
+        elif (simulationParameters.scenario == 1):
+            pass
+        elif (simulationParameters.scenario == 2):
+            # scaleFactor = 9
+            # cls.learningRate = 1e-1
+            # exp1 = -1
+            # exp2 = -4.5
+            pass
+        elif (simulationParameters.scenario == 3):
+            cls.learningRate = 1e-3
+        else:
+            raise('Invalid Scenario Configuration')
+
+        cls.lambdaLr = lambda step: scaleFactor * min(
+                                                            (step + 1) ** (exp1),
+                                                            (step + 1) * warmupSteps ** (exp2)
+                                                    )
         
 
 
@@ -148,15 +166,19 @@ class RootNet(pl.LightningModule):
         mus.backward((1/B)*mus_grads)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(
-                                        self.parameters(),
-                                        lr=self.learningRate,
-                                        betas=(0.9, 0.98),
-                                        eps=1e-9
-                                    )
         if self.VARYING_STEP_SIZE:
+            optimizer = torch.optim.Adam(
+                                            self.parameters(),
+                                            lr=self.learningRate,
+                                            betas=(0.9, 0.98),
+                                            eps=1e-9
+                                        )
             return [optimizer], [LambdaLR(optimizer, lr_lambda=self.lambdaLr)]
         else:
+            optimizer = torch.optim.Adam(
+                                            self.parameters(),
+                                            lr=self.learningRate
+                                        )
             return optimizer
     
     def train_dataloader(self):
