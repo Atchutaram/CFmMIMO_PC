@@ -47,6 +47,7 @@ class CommonParameters:
     numSamples = 1
     batchSize = 1024
     numEpochs = 4*4
+    numEpochs = 4
 
     learningRate = 1e-2
     
@@ -64,7 +65,7 @@ class CommonParameters:
         cls.validationDataPath = simulationParameters.validationDataFolder
         cls.scenario = simulationParameters.scenario
         
-        warmupSteps = 40
+        warmupSteps = 4000
         scaleFactor = 1
         exp1 = -0.5
         exp2 = -1.5
@@ -78,13 +79,9 @@ class CommonParameters:
         elif (simulationParameters.scenario == 1):
             pass
         elif (simulationParameters.scenario == 2):
-            # scaleFactor = 9
-            # cls.learningRate = 1e-1
-            # exp1 = -1
-            # exp2 = -4.5
             pass
         elif (simulationParameters.scenario == 3):
-            cls.learningRate = 1e-3
+            pass
         else:
             raise('Invalid Scenario Configuration')
 
@@ -92,7 +89,7 @@ class CommonParameters:
                                                             (step + 1) ** (exp1),
                                                             (step + 1) * warmupSteps ** (exp2)
                                                     )
-        
+
 
 
 class RootNet(pl.LightningModule):

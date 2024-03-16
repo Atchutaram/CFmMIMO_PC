@@ -120,7 +120,7 @@ def attention(query, key, value, d_k, mask=None, dropout=None):
     return output  # dimension B x h x K x d_k
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, heads, M, dropout = 0.1):
+    def __init__(self, heads, M, dropout = 0):
         super().__init__()
         
         self.M = M
@@ -168,7 +168,7 @@ class MultiHeadAttention(nn.Module):
 
 class FeedForward(nn.Module):
 
-    def __init__(self, M, dropout = 0.1):
+    def __init__(self, M, dropout = 0):
         super().__init__() 
         
         dMid = int(1 / (1-dropout)) * M
@@ -201,7 +201,7 @@ class Norm(nn.Module):
 
 class EncoderLayer(nn.Module):
     
-    def __init__(self, M, heads, dropout=0.1):
+    def __init__(self, M, heads, dropout = 0):
         super().__init__()
         self.norm1 = Norm(M)
         self.norm2 = Norm(M)

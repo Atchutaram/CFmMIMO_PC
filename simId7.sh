@@ -16,7 +16,7 @@ simId=7
 scenario=3
 retain=0
 
-numberOfSamples=1000000
+numberOfSamples=9400000
 varK=1
 randomPilotsFlag=1
 

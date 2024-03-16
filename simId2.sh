@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=23:00:00
+#SBATCH --time=25:00:00
 #SBATCH --job-name=simId2
 #SBATCH --mem-per-cpu=10G
 #SBATCH --cpus-per-task=1
@@ -16,7 +16,7 @@ simId=2
 scenario=0
 retain=0
 
-numberOfSamples=1000000
+numberOfSamples=9400000
 varK=0
 randomPilotsFlag=0
 

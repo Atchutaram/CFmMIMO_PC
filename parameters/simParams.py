@@ -41,6 +41,7 @@ class SimulationParameters:
         self.scenario = scenario
         self.randomPilotsFlag = randomPilotsFlag
         self.varyingNumberOfUsersFlag = varyingNumberOfUsersFlag
+        self.simulationId = simulationId
         
         if (torch.cuda.is_available() and (not (self.operationMode==OperatingModes.TESTING))):
             deviceTxt = "cuda"
