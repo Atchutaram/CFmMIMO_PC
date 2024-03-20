@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=120:40:00
+#SBATCH --time=120:00:00
 #SBATCH --job-name=simId3
 #SBATCH --mem-per-cpu=80G
 #SBATCH --cpus-per-task=1
