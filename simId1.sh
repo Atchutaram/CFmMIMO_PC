@@ -17,8 +17,8 @@ scenario=0
 retain=0
 
 numberOfSamples=1000000
-varK=0
-randomPilotsFlag=0
+varK=1
+randomPilotsFlag=1
 
 module load anaconda
 source activate CFmMIMO_PC

@@ -6,7 +6,7 @@ from utils.handleInputArgs import Args
 from utils.utils import cleanFolders
 
 defaultNumberOfSamples = 50
-testingNumberOfSamples = 100
+testingNumberOfSamples = 2000
 
 # Handling command-line arguments
 args = Args(defaultNumberOfSamples, )
@@ -49,20 +49,26 @@ if __name__ == '__main__':
     systemParameters = SystemParameters(simulationParameters)
 
     # Generating train & validation or test data.
-    if not os.listdir(simulationParameters.dataFolder):
-        timeThen = time.perf_counter()
-        
-        for sampleId in range(args.numberOfSamples):
-            # Generates Train/Test data
-            dataGen(simulationParameters, systemParameters, sampleId)
+    if not (simulationParameters.operationMode == OperatingModes.PLOTTING_ONLY):
+        if not os.listdir(simulationParameters.dataFolder):
+            timeThen = time.perf_counter()
             
-            if ((simulationParameters.operationMode == OperatingModes.TRAINING)
-                and (sampleId < simulationParameters.validationNumberOfData)):
-                    # Generates Validation data
-                    dataGen(simulationParameters, systemParameters, sampleId, validationData=True)
-        
-        timeNow = time.perf_counter()
-        print(f'Finished data generation in {round(timeNow - timeThen, 2)} second(s)')
+            for sampleId in range(args.numberOfSamples):
+                # Generates Train/Test data
+                dataGen(simulationParameters, systemParameters, sampleId)
+                
+                if ((simulationParameters.operationMode == OperatingModes.TRAINING)
+                    and (sampleId < simulationParameters.validationNumberOfData)):
+                        # Generates Validation data
+                        dataGen(
+                            simulationParameters,
+                            systemParameters,
+                            sampleId,
+                            validationData=True
+                            )
+            
+            timeNow = time.perf_counter()
+            print(f'Finished data generation in {round(timeNow - timeThen, 2)} second(s)')
 
     # Training and/or test the power control algorithms.
     if simulationParameters.operationMode==OperatingModes.TRAINING:

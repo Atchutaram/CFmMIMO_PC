@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 import math
 import torch.nn.functional as F
+from math import sqrt
 
 
 class RootDataset(Dataset):
@@ -47,9 +48,8 @@ class CommonParameters:
     numSamples = 1
     batchSize = 1024
     numEpochs = 4*4
-    numEpochs = 4
 
-    learningRate = 1e-2
+    learningRate = 1 / sqrt(1000)
     
     # Params related to varying step size
     VARYING_STEP_SIZE = True
@@ -75,7 +75,7 @@ class CommonParameters:
         
         
         if (simulationParameters.scenario == 0):
-            cls.learningRate = 1e-1
+            cls.learningRate = 1 / sqrt(80)
         elif (simulationParameters.scenario == 1):
             pass
         elif (simulationParameters.scenario == 2):

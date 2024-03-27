@@ -4,7 +4,7 @@ import torch
 class SystemParameters:
     
     def __init__(self, simulationParameters):
-        defaultModels = ['ANN', 'FCN', 'TDN']
+        defaultModels = ['TNN', 'FCN', 'TDN']
         if simulationParameters.scenario==0:
             coverageArea = 0.01  # in sq.Km
             maxNumberOfUsers = 4
@@ -27,6 +27,7 @@ class SystemParameters:
             models = defaultModels
             
         elif simulationParameters.scenario==3:
+            defaultModels = ['TNN',]
             coverageArea = 0.1
             maxNumberOfUsers = 80
             accessPointDensity = 2000
@@ -37,7 +38,7 @@ class SystemParameters:
         #     coverageArea = 1
         #     maxNumberOfUsers = 500
         #     accessPointDensity = 2000
-        #     models = ['ANN',]  # Plan is to do ['AE-FCN', 'ANN']
+        #     models = ['TNN',]  # Plan is to do ['AE-FCN', 'TNN']
         else:
             raise('Invalid Scenario Configuration')
 

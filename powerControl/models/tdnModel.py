@@ -91,7 +91,7 @@ class NeuralNet(RootNet):
         for m, FCN in enumerate(self.fcns):
             outputTemp = FCN(x[:, 0, m, :])
             
-            outputTemp = torch.nn.functional.softplus(outputTemp + 6, beta = 2)
+            outputTemp = torch.nn.functional.relu(outputTemp + 6)
             outputTemp = torch.exp(-outputTemp)
             norms = torch.norm(outputTemp, p=2, dim=1, keepdim=True)
             outputTemp = self.N_invRoot * outputTemp / norms

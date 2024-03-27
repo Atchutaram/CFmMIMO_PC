@@ -46,8 +46,8 @@ class Args():
     
         parser = argparse.ArgumentParser(
             description=('Train or test the DNN for CFmMIMO downlink power control described in the'
-                        ' paper "ANN-Based Power Control Algorithm for the Downlink of Cell-Free '
-                        'Massive MIMO".')
+                        ' paper "Pilot Contamination Aware Transformer Neural Network for Downlink '
+                        'Power Control in Cell-Free Massive MIMO Networks.')
             )
 
         parser.add_argument(

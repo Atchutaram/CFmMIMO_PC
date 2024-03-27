@@ -49,7 +49,7 @@ def deploy(model, testSample, phiCrossMat, modelName, device):
         return mus_predicted
 
 def initializeHyperParams(modelName, simulationParameters, systemParameters):
-    # Ex: If model_name is 'ANN', it imports ANN_model module and initializes its hyper parameters.
+    # Ex: If model_name is 'TNN', it imports TNN_model module and initializes its hyper parameters.
     importPath = findImportPath(modelName)
     module = importlib.import_module(importPath, ".")  # imports the Models
     

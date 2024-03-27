@@ -7,7 +7,7 @@ from .utils import EncoderLayer, Norm
 from powerControl.testing import project2s
 
 
-MODEL_NAME = 'ANN'
+MODEL_NAME = 'TNN'
 
 # Hyper-parameters
 class HyperParameters(CommonParameters):
@@ -73,13 +73,9 @@ class NeuralNet(RootNet):
         
         x = self.otpMapping(x)
         x = self.norm3(x)
-        x = (x.transpose(1,2).contiguous()+6)
-        x = torch.nn.functional.softplus(x, beta = 2)
+        x = torch.nn.functional.relu(x.transpose(1,2).contiguous()+6)
         
         y = torch.exp(-x)
-        diagonals = torch.diagonal(mask, dim1=-2, dim2=-1)
-        modifiedMask = torch.squeeze(torch.diag_embed(diagonals, dim1=-2, dim2=-1))
-        y = y @ modifiedMask
         output = project2s(y, self.N_invRoot)
         
         return output

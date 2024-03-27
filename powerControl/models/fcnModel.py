@@ -77,7 +77,7 @@ class NeuralNet(RootNet):
         output = self.fcnFull(x.view(-1, 1, self.inputSize))
         output = output.view(self.outputShape)
         
-        output = torch.nn.functional.softplus(output + 6, beta = 2)
+        output = torch.nn.functional.relu(output + 6)
         
         y = torch.exp(-output)
         

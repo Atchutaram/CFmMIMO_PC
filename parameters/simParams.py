@@ -80,8 +80,9 @@ class SimulationParameters:
         self.dataFolder = os.path.join(self.baseFolderPath, "betas")
         self.validationDataFolder = os.path.join(self.baseFolderPath, "betasVal")
         if not operatingMode==OperatingModes.TRAINING:
-            self.resultsFolder = os.path.join(self.resultsBase, "results")
-            self.plotFolder = os.path.join(self.resultsBase, "plots")
+            resTail = str(int(self.varyingNumberOfUsersFlag)) + str(int(self.randomPilotsFlag))
+            self.resultsFolder = os.path.join(self.resultsBase, "results_"+ resTail)
+            self.plotFolder = os.path.join(self.resultsBase, "plots_" + resTail)
         
 
         if not self.operationMode == OperatingModes.PLOTTING_ONLY:
