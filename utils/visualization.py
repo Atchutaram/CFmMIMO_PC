@@ -13,9 +13,6 @@ def fetchSeValues(resultsFolder, algoList, seMin=False):
                 tempArray = torch.load(filePathAndName)
                 if seMin:
                     seOut[algoId].append(tempArray['resultSample'].min().unsqueeze(0))
-                    # tt = 1
-                    # if algoId == tt:
-                    #     print(f'{algo}: {type(tempArray["resultSample"])}')
                 else:
                     seOut[algoId].append(tempArray['resultSample'])
     
