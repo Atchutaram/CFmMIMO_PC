@@ -63,6 +63,8 @@ def dataGen(simulationParameters, systemParameters, sampleId, validationData=Fal
                                             systemParameters.maxNumberOfUsers + 1,
                                             (1, )
                                     ).item()
+    if simulationParameters.minNumberOfUsersFlag:
+        numberOfUsers = systemParameters.minNumberOfUsers
 
     userConfig = getUserConfig(areaWidth, areaHeight, numberOfUsers, device)  # get user positions
     # distance mat for each pair of AP and user

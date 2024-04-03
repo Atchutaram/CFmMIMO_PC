@@ -11,7 +11,7 @@
             // "program": "${CFmMIMO_PC}",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args":["--mode", "1", "--simulationID", "2", "--scenario", "0"],
+            "args":["--mode", "1", "--simulationId", "8", "--scenario", "0"],
             "cwd": "${workspaceFolder}"
         }
     ]

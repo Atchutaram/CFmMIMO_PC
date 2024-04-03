@@ -1,10 +1,11 @@
 import torch
+from .modes import OperatingModes
 
 
 class SystemParameters:
     
     def __init__(self, simulationParameters):
-        defaultModels = ['TNN', 'FCN', 'TDN']
+        defaultModels = ['TNN', 'FCN', ]
         if simulationParameters.scenario==0:
             coverageArea = 0.01  # in sq.Km
             maxNumberOfUsers = 4

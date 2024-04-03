@@ -5,7 +5,8 @@ class OperatingModes(IntEnum):
     # generates training data and perform training and save trained NN model
     TRAINING  = auto()
     
-    # Performs dataGen and test for all the algos for given scenarios. The DL algo uses the trained NN model
+    # Performs dataGen and test for all the algos for given scenarios.
+    # The DL algo uses the trained NN model
     TESTING  = auto()
     
     # This is needs test data. So it should be run at least once before plotting.
@@ -13,3 +14,6 @@ class OperatingModes(IntEnum):
     
     # Performs training, testing, and then plotting.
     ALL = auto()
+    
+    # Provides Consolidated plots from all simIds
+    CONSOL = auto()

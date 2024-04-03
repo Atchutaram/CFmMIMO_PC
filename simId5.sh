@@ -13,7 +13,7 @@ operationMode=1  # do not change
 
 # Configuration
 simId=5
-scenario=2
+scenario=3
 retain=0
 
 numberOfSamples=9400000

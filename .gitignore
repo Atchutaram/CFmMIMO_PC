@@ -13,4 +13,4 @@ __pycache__/
 modelsSc*/
 simId*/
 lightning_logs/
-.vscode/
+consolidatedResults/

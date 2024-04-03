@@ -21,7 +21,8 @@ class SimulationParameters:
             retain,
             resultsBase,
             randomPilotsFlag,
-            varyingNumberOfUsersFlag
+            varyingNumberOfUsersFlag,
+            minNumberOfUsersFlag,
         ) = (
                 args.root,
                 args.simulationId,
@@ -31,7 +32,8 @@ class SimulationParameters:
                 args.retain,
                 args.resultsBase,
                 args.randomPilotsFlag,
-                args.varyingNumberOfUsersFlag
+                args.varyingNumberOfUsersFlag,
+                args.minNumberOfUsersFlag,
             )
         
         self.numberOfSamples = numberOfSamples
@@ -41,6 +43,7 @@ class SimulationParameters:
         self.scenario = scenario
         self.randomPilotsFlag = randomPilotsFlag
         self.varyingNumberOfUsersFlag = varyingNumberOfUsersFlag
+        self.minNumberOfUsersFlag = minNumberOfUsersFlag
         self.simulationId = simulationId
         
         if (torch.cuda.is_available() and (not (self.operationMode==OperatingModes.TESTING))):
@@ -81,6 +84,8 @@ class SimulationParameters:
         self.validationDataFolder = os.path.join(self.baseFolderPath, "betasVal")
         if not operatingMode==OperatingModes.TRAINING:
             resTail = str(int(self.varyingNumberOfUsersFlag)) + str(int(self.randomPilotsFlag))
+            if self.minNumberOfUsersFlag:
+                resTail = 'minK'
             self.resultsFolder = os.path.join(self.resultsBase, "results_"+ resTail)
             self.plotFolder = os.path.join(self.resultsBase, "plots_" + resTail)
         

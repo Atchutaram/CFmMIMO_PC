@@ -17,7 +17,7 @@ scenario=0
 retain=0
 
 numberOfSamples=9400000
-varK=1
+varK=0
 randomPilotsFlag=1
 
 module load anaconda

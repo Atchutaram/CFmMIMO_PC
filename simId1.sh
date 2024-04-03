@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=25:00:00
+#SBATCH --time=120:00:00
 #SBATCH --job-name=simId1
 #SBATCH --mem-per-cpu=10G
 #SBATCH --cpus-per-task=1
@@ -17,7 +17,7 @@ scenario=0
 retain=0
 
 numberOfSamples=1000000
-varK=1
+varK=0
 randomPilotsFlag=1
 
 module load anaconda
