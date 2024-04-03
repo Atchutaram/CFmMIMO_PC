@@ -108,7 +108,7 @@ class RootNet(pl.LightningModule):
         self.relu = nn.ReLU()
         self.name = None
         self.maxNumberOfUsers = self.systemParameters.maxNumberOfUsers
-        self.PAD_CONST = 6e-10
+        self.PAD_CONST = 6e-13
         
     
     def training_step(self, batch, batch_idx):
