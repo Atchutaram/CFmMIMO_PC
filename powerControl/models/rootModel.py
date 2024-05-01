@@ -47,9 +47,10 @@ class RootDataset(Dataset):
 class CommonParameters:
     numSamples = 1
     batchSize = 1024
-    numEpochs = 4*4
+    numEpochs = 4*2
+    M2Multiplier = 100
 
-    learningRate = 1 / sqrt(1000)
+    learningRate = 1 / sqrt(5*M2Multiplier)
     
     # Params related to varying step size
     VARYING_STEP_SIZE = True
@@ -75,7 +76,7 @@ class CommonParameters:
         
         
         if (simulationParameters.scenario == 0):
-            cls.learningRate = 1 / sqrt(80)
+            cls.learningRate = 1 / sqrt(5*8)
         elif (simulationParameters.scenario == 1):
             pass
         elif (simulationParameters.scenario == 2):

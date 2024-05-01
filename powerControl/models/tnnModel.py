@@ -20,13 +20,13 @@ class HyperParameters(CommonParameters):
         #  Room for any additional model-specific configurations
         cls.heads = 5
         if (simulationParameters.scenario == 0):
-            cls.M2 = 16*cls.heads
+            cls.M2 = 8*cls.heads
         elif (
                     (simulationParameters.scenario == 1) or
                     (simulationParameters.scenario == 2) or
                     (simulationParameters.scenario == 3)
             ):
-            cls.M2 = 200*cls.heads
+            cls.M2 = cls.M2Multiplier*cls.heads
         else:
             raise('Invalid Scenario Configuration')
     
@@ -53,6 +53,9 @@ class NeuralNet(RootNet):
         self.layer1 = EncoderLayer(M2, heads=heads)
         self.layer2 = EncoderLayer(M2, heads=heads)
         self.layer3 = EncoderLayer(M2, heads=heads)
+        self.layer4 = EncoderLayer(M2, heads=heads)
+        self.layer5 = EncoderLayer(M2, heads=heads)
+        self.layer6 = EncoderLayer(M2, heads=heads)
         self.otpMapping = nn.Linear(M2, M)
         self.norm3 = Norm(M)
 
@@ -70,6 +73,9 @@ class NeuralNet(RootNet):
         x = self.layer1(x, mask=mask)
         x = self.layer2(x, mask=mask)
         x = self.layer3(x, mask=mask)
+        x = self.layer4(x, mask=mask)
+        x = self.layer5(x, mask=mask)
+        x = self.layer6(x, mask=mask)
         
         x = self.otpMapping(x)
         x = self.norm3(x)

@@ -9,21 +9,21 @@ class SystemParameters:
         if simulationParameters.scenario==0:
             coverageArea = 0.01  # in sq.Km
             maxNumberOfUsers = 4
-            accessPointDensity = 2000
+            accessPointDensity = 1000
             
             models = defaultModels
 
         elif simulationParameters.scenario==1:
             coverageArea = 0.1  # in sq.Km
             maxNumberOfUsers = 20
-            accessPointDensity = 2000
+            accessPointDensity = 1000
 
             models = defaultModels
             
         elif simulationParameters.scenario==2:
             coverageArea = 0.1
             maxNumberOfUsers = 40
-            accessPointDensity = 2000
+            accessPointDensity = 1000
 
             models = defaultModels
             
@@ -31,7 +31,7 @@ class SystemParameters:
             defaultModels = ['TNN',]
             coverageArea = 0.1
             maxNumberOfUsers = 80
-            accessPointDensity = 2000
+            accessPointDensity = 1000
 
             models = defaultModels
             
