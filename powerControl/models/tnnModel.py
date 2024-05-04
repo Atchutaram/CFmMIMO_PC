@@ -53,9 +53,6 @@ class NeuralNet(RootNet):
         self.layer1 = EncoderLayer(M2, heads=heads)
         self.layer2 = EncoderLayer(M2, heads=heads)
         self.layer3 = EncoderLayer(M2, heads=heads)
-        self.layer4 = EncoderLayer(M2, heads=heads)
-        self.layer5 = EncoderLayer(M2, heads=heads)
-        self.layer6 = EncoderLayer(M2, heads=heads)
         self.otpMapping = nn.Linear(M2, M)
         self.norm3 = Norm(M)
 
@@ -73,9 +70,6 @@ class NeuralNet(RootNet):
         x = self.layer1(x, mask=mask)
         x = self.layer2(x, mask=mask)
         x = self.layer3(x, mask=mask)
-        x = self.layer4(x, mask=mask)
-        x = self.layer5(x, mask=mask)
-        x = self.layer6(x, mask=mask)
         
         x = self.otpMapping(x)
         x = self.norm3(x)
