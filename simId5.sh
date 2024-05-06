@@ -20,7 +20,7 @@ numberOfSamples=12000000
 varK=1
 randomPilotsFlag=0
 
-module load anaconda
+module load mamba
 source activate CFmMIMO_PC
 
 python cellFreeMassMimoPowCtrl.py --simulationId $simId --samples $numberOfSamples --mode $operationMode --scenario $scenario --retain $retain --host $triton --varK $varK --randomPilotsFlag $randomPilotsFlag
