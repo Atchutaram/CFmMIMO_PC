@@ -47,7 +47,7 @@ class RootDataset(Dataset):
 class CommonParameters:
     numSamples = 1
     batchSize = 1024
-    numEpochs = 4*2
+    numEpochs = 4*4
     M2Multiplier = 100
 
     learningRate = 1 / sqrt(5*M2Multiplier)
