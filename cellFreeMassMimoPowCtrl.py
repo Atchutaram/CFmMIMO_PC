@@ -45,7 +45,8 @@ args.setRootDir()
 if __name__ == '__main__':
     start = time.perf_counter()
 
-    if not (args.operatingMode == OperatingModes.CONSOL):
+    if (not (args.operatingMode == OperatingModes.CONSOL) and
+    not (args.operatingMode == OperatingModes.LOCAL)):
         simulationParameters = SimulationParameters(args)
         systemParameters = SystemParameters(simulationParameters)
 
@@ -98,7 +99,7 @@ if __name__ == '__main__':
 
         elif simulationParameters.operationMode==OperatingModes.PLOTTING_ONLY:
             testAndPlot(simulationParameters, systemParameters, plottingOnly=True)
-    else:
+    elif args.operatingMode == OperatingModes.CONSOL:
         from utils.utils import handleDeletionAndCreation
         from powerControl.testing import consolidatePlot
         scenarioMapping = lambda simId: 0 if simId in range(0, 3) else (simId - 2)
@@ -226,6 +227,20 @@ if __name__ == '__main__':
         plotFolder = os.path.join(plotFolderBase, f'Fig{figIdx}')
         handleDeletionAndCreation(plotFolder, retain=False)
         consolidatePlot(figIdx, resultsFolders, algoLists, tags, tagsForNonML, plotFolder)
+    else:
+        from powerControl.testing import localPlotEditing
+        from utils.utils import handleDeletionAndCreation
+        
+        plotFolderBase = os.path.join(args.root, 'consolidatedResults')
+        outputFolderBase = os.path.join(args.root, 'updatedResults')
+        handleDeletionAndCreation(outputFolderBase, retain=False)
+        args.operatingMode = OperatingModes.PLOTTING_ONLY
+        
+        for figIdx in range(1, 5):
+            plotFolder = os.path.join(plotFolderBase, f'Fig{figIdx}')
+            outputFolder = os.path.join(outputFolderBase, f'Fig{figIdx}')
+            handleDeletionAndCreation(outputFolder, retain=False)
+            localPlotEditing(figIdx, plotFolder, outputFolder)
 
     # Compute and display the execution time.
     finish = time.perf_counter()

@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import os
 import torch
 import seaborn as sns
+import pickle
 
 
 # Predefined color map for algorithms
@@ -59,6 +60,7 @@ def consolidatedPlots(figIdx, resultsFolders, algoLists, tags, tagsForNonML, plo
             
             # Adjust label for clarity
             label = f'{algo} - {tag}'.replace('_', ' ')
+            label = f'{algo} - {tag}'.replace('TNN', 'PAPC')
             if algo in ['APG', 'EPA']:
                 label = f'{algo} - {tagForNonML}'.replace('_', ' ')
 
@@ -96,20 +98,48 @@ def consolidatedPlots(figIdx, resultsFolders, algoLists, tags, tagsForNonML, plo
         fig2.savefig(pdfPlotFile)
     else:
         # Finalizing and saving the consolidated CDF plot
+        cdfFileName = f'consolidated_CDF_full_fig{figIdx}'
         ax.legend()
         ax.set_xlabel('Per-user spectral efficiency')
         ax.set_ylabel('CDF')
-        cdfPlotFile = os.path.join(plotFolder, f'consolidated_CDF_full_fig{figIdx}.png')
+        cdfPlotFile = os.path.join(plotFolder, f'{cdfFileName}.png')
         fig.savefig(cdfPlotFile)
+        cdfPlotFilePkl = os.path.join(plotFolder, f'{cdfFileName}.pkl')
+        with open(cdfPlotFilePkl, 'wb') as f:
+            pickle.dump(fig, f)
 
         # Finalizing and saving the consolidated PDF plot
+        pdfFileName = f'consolidated_PDF_full_fig{figIdx}'
         ax2.legend()
         ax2.set_xlabel('Per-user spectral efficiency')
         ax2.set_ylabel('PDF')
-        pdfPlotFile = os.path.join(plotFolder, f'consolidated_PDF_full_fig{figIdx}.png')
+        pdfPlotFile = os.path.join(plotFolder, f'{pdfFileName}.png')
         fig2.savefig(pdfPlotFile)
+        pdfPlotFilePkl = os.path.join(plotFolder, f'{pdfFileName}.pkl')
+        with open(pdfPlotFilePkl, 'wb') as f:
+            pickle.dump(fig2, f)
 
-
+def localPlotEdits(figIdx, plotFolder, outputFolder):
+    
+    cdfFileName = f'consolidated_CDF_full_fig{figIdx}'
+    cdfPlotFilePkl = os.path.join(plotFolder, f'{cdfFileName}.pkl')
+    with open(cdfPlotFilePkl, 'rb') as f:
+        fig = pickle.load(f)
+    
+    pdfFileName = f'consolidated_PDF_full_fig{figIdx}'
+    pdfPlotFilePkl = os.path.join(plotFolder, f'{pdfFileName}.pkl')
+    with open(pdfPlotFilePkl, 'rb') as f:
+        fig2 = pickle.load(f)
+    
+    # Edit figures here
+    
+    # Save figures after editing
+    cdfPlotFile = os.path.join(outputFolder, f'{cdfFileName}.png')
+    fig.savefig(cdfPlotFile)
+    
+    pdfPlotFile = os.path.join(outputFolder, f'{pdfFileName}.png')
+    fig2.savefig(pdfPlotFile)
+    
 def individualPlots(resultsFolder, algoList, plotFolder, scenario, seMin):
 
     fig, ax = plt.subplots()
@@ -166,13 +196,11 @@ def individualPlots(resultsFolder, algoList, plotFolder, scenario, seMin):
         
         plotFile = os.path.join(plotFolder,f'scenario{scenario}PDF_full.png')
         fig2.savefig(plotFile)
-    
-    
+
 def performancePlotter(resultsFolder, algoList, plotFolder, scenario):
     for seMin in [True, False]:
         individualPlots(resultsFolder, algoList, plotFolder, scenario, seMin = seMin)
     plt.show()
-
 
 def consolidatedPlotter(figIdx, resultsFolders, algoLists, tags, tagsForNonML, plotFolder):
     for seMin in [True, False]:
@@ -185,4 +213,8 @@ def consolidatedPlotter(figIdx, resultsFolders, algoLists, tags, tagsForNonML, p
                                 plotFolder,
                                 seMin = seMin
                         )
+    plt.show()
+
+def localPlotEditor(figIdx, plotFolder, outputFolder):
+    localPlotEdits(figIdx, plotFolder, outputFolder)
     plt.show()

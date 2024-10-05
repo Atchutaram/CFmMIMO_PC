@@ -81,7 +81,9 @@ class Args():
                     3) PLOTTING_ONLY      : Plots the results of a test that is already done.\n
                     4) ALL                : Train and then Test.\n
                     5) CONSOL             : This is for generating consolidated plots once all the
-                    results of all the simIds are ready.\n""",
+                    results of all the simIds are ready.\n
+                    6) LOCAL              : To Fetch the consolidated plots and do additional
+                    processing like annotation.\n""",
                 default=OperatingModes.ALL,
                 metavar='operatingMode',
             )

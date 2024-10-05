@@ -17,3 +17,6 @@ class OperatingModes(IntEnum):
     
     # Provides Consolidated plots from all simIds
     CONSOL = auto()
+    
+    # Fetches Consolidated plots To do further processing
+    LOCAL = auto()

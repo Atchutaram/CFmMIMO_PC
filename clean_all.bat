@@ -5,3 +5,5 @@ rmdir /Q /S simId2
 rmdir /Q /S simId3
 rmdir /Q /S simId4
 rmdir /Q /S simId5
+rmdir /Q /S consolidatedResults
+rmdir /Q /S updatedResults

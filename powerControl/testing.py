@@ -6,7 +6,7 @@ from tqdm import tqdm
 from .utils import compute_v_mat, utilityComputation
 from .gradientHandler import grads, grad_f
 from .models.utils import loadTheLatestModelAndParamsIfExists, deploy, initializeHyperParams
-from utils.visualization import performancePlotter, consolidatedPlotter
+from utils.visualization import performancePlotter, consolidatedPlotter, localPlotEditor
 
 
 
@@ -295,3 +295,6 @@ def testAndPlot(simulationParameters, systemParameters, plottingOnly):
 
 def consolidatePlot(figIdx, resultsFolders, algoLists, tags, tagsForNonML, plotFolder):
     consolidatedPlotter(figIdx, resultsFolders, algoLists, tags, tagsForNonML, plotFolder)
+
+def localPlotEditing(figIdx, plotFolder, outputFolder):
+    localPlotEditor(figIdx, plotFolder, outputFolder)
