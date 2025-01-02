@@ -114,7 +114,7 @@ if __name__ == '__main__':
         tags = [
                     'Sc. 0 - 100K Samples',
                     'Sc. 0 - 1M Samples',
-                    'Sc. 0 - 9.4M Samples',
+                    'Sc. 0 - 12M Samples',
                 ]
         tagsForNonML = [
                     'Sc. 0',

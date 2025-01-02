@@ -3,6 +3,7 @@ import os
 import torch
 import seaborn as sns
 import pickle
+import textwrap
 
 
 # Predefined color map for algorithms
@@ -132,14 +133,266 @@ def localPlotEdits(figIdx, plotFolder, outputFolder):
         fig2 = pickle.load(f)
     
     # Edit figures here
-    
+    ax = fig.gca()
+    if figIdx == 1:
+        # Retrieve the legend from the axis
+        legend = ax.get_legend()
+
+        # Check if the legend exists and has enough items
+        if legend is not None and len(legend.get_texts()) >= 8:
+            # Retrieve the 7th and 8th legend items
+            legend_texts = legend.get_texts()
+            
+            # Replace text in the 7th and 8th legend items
+            seventh_item = legend_texts[6]
+            seventh_item.set_text(seventh_item.get_text().replace('9.4', '12'))
+            
+            eighth_item = legend_texts[7]
+            eighth_item.set_text(eighth_item.get_text().replace('9.4', '12'))
+
+    elif figIdx == 2:
+        percentile_value = 0.1
+        alignmentPointX = 4
+        annotationPointSc1 = (alignmentPointX, 0.4)
+        annotationPointSc2 = (alignmentPointX, 0.6)
+        annotationPointSc3 = (alignmentPointX, 0.8)
+        fontsize = 9
+        wrap_width = 25
+        arrowWidth = 0.75
+        
+        ax.axhline(y=percentile_value, color='gray', linestyle='--', alpha=0.7)
+        ax.text(
+            -0.2,  # x-coordinate of the label
+            percentile_value+0.035,  # y-coordinate matching the line
+            '10th Percentile',  # The label text
+            va='center',  # Vertically center the text at the line
+            ha='left',    # Align text to the left of the x position
+            fontsize=fontsize,  # Adjust the font size as needed
+            color='gray'  # Match the label color with the line
+        )
+        
+        # Sc. 1
+        x1 = 2.12
+        x2 = 3.856
+        yDelta = -0.01
+        fcnLag = x2 - x1
+        
+        ax.plot(x1, percentile_value, 'r+')
+        ax.plot(x2, percentile_value, 'go')
+        
+        ax.annotate(
+            '', 
+            xy = (x1, percentile_value + yDelta),
+            xytext = (x2, percentile_value + yDelta),
+            arrowprops = dict(arrowstyle='<->', lw=1.5, color=algoColorMap['FCN'])
+        )
+        xMean = (x1 + x2)/2
+        
+        
+        ax.annotate(
+            '', 
+            xy = (xMean, percentile_value + yDelta),
+            xytext = annotationPointSc1,
+            arrowprops = dict(arrowstyle='->', lw=arrowWidth)
+        )
+        
+        x1 = 2.94
+        yDelta = -0.02
+        epaLag = x2 - x1
+        
+        ax.plot(x1, percentile_value, 'bx')
+        ax.plot(x2, percentile_value, 'go')
+        
+        ax.annotate(
+            '', 
+            xy = (x1, percentile_value + yDelta),
+            xytext = (x2, percentile_value + yDelta),
+            arrowprops = dict(arrowstyle='<->', lw=1.5, color=algoColorMap['EPA'])
+        )
+        xMeanEPA = (x1 + x2)/2
+        
+        ax.annotate(
+            '', 
+            xy = (xMeanEPA, percentile_value + yDelta),
+            xytext = annotationPointSc1,
+            arrowprops = dict(arrowstyle='->', lw=arrowWidth)
+        )
+        
+        # Prepare the text with auto-wrap
+        text = f'PAPC vs FCN and EPA in Sc. 1. Minimum SE seen by top 90% of the users in FCN lags by {fcnLag:.2f} bits/s/Hz while EPA lags by {epaLag:.2f} bits/s/Hz'
+
+        # Wrap the text
+        wrapped_text = '\n'.join(textwrap.fill(line, wrap_width) for line in text.split('\n'))
+
+        # Plot with wrapped text
+        ax.text(
+            *annotationPointSc1,
+            wrapped_text,
+            ha='left',
+            va='top',
+            fontsize = fontsize
+        )
+        
+        # Sc. 2
+        x1 = 0.246
+        x2 = 2.66
+        yDelta = 0.01
+        fcnLag = x2 - x1
+        
+        ax.plot(x1, percentile_value, 'r+')
+        ax.plot(x2, percentile_value, 'go')
+        
+        ax.annotate(
+            '', 
+            xy = (x1, percentile_value + yDelta),
+            xytext = (x2, percentile_value + yDelta),
+            arrowprops = dict(arrowstyle='<->', lw=1.5, color=algoColorMap['FCN'], linestyle='--')
+        )
+        xMean = (x1 + x2)/2
+        
+        ax.annotate(
+            '', 
+            xy = (xMean, percentile_value + yDelta),
+            xytext = annotationPointSc2,
+            arrowprops = dict(arrowstyle='->', lw=arrowWidth, linestyle='--')
+        )
+        
+        x1 = 1.74
+        yDelta = -0.02
+        epaLag = x2 - x1
+        
+        ax.plot(x1, percentile_value, 'bx')
+        ax.plot(x2, percentile_value, 'go')
+        
+        ax.annotate(
+            '', 
+            xy = (x1, percentile_value + yDelta),
+            xytext = (x2, percentile_value + yDelta),
+            arrowprops = dict(arrowstyle='<->', lw=1.5, color=algoColorMap['EPA'], linestyle='--')
+        )
+        xMeanEPA = (x1 + x2)/2
+        
+        ax.annotate(
+            '', 
+            xy = (xMeanEPA, percentile_value + yDelta),
+            xytext = annotationPointSc2,
+            arrowprops = dict(arrowstyle='->', lw=arrowWidth, linestyle='--')
+        )
+        
+        # Prepare the text with auto-wrap
+        text = f'PAPC vs FCN and EPA in Sc. 2. Minimum SE seen by top 90% of the users in FCN lags by {fcnLag:.2f} bits/s/Hz while EPA lags by {epaLag:.2f} bits/s/Hz'
+
+        # Wrap the text
+        wrapped_text = '\n'.join(textwrap.fill(line, wrap_width) for line in text.split('\n'))
+
+        # Plot with wrapped text
+        ax.text(
+            *annotationPointSc2,
+            wrapped_text,
+            ha='left',
+            va='top',
+            fontsize = fontsize
+        )
+        # Sc. 3
+        x1 = 0.828
+        x2 = 1.74
+        yDelta = 0.02
+        epaLag = x2 - x1
+        
+        ax.plot(x1, percentile_value, 'bx')
+        ax.plot(x2, percentile_value, 'go')
+        
+        ax.annotate(
+            '', 
+            xy = (x1, percentile_value + yDelta),
+            xytext = (x2, percentile_value + yDelta),
+            arrowprops = dict(arrowstyle='<->', lw=1.5, color=algoColorMap['EPA'], linestyle='-.')
+        )
+        xMeanEPA = (x1 + x2)/2
+        
+        ax.annotate(
+            '', 
+            xy = (xMeanEPA, percentile_value + yDelta),
+            xytext = annotationPointSc3,
+            arrowprops = dict(arrowstyle='->', lw=arrowWidth, linestyle='-.')
+        )
+        
+        # Prepare the text with auto-wrap
+        text = f'PAPC vs EPA in Sc. 3. Minimum SE seen by top 90% of the users in EPA lags by {epaLag:.2f} bits/s/Hz'
+
+        # Wrap the text
+        wrapped_text = '\n'.join(textwrap.fill(line, wrap_width) for line in text.split('\n'))
+
+        # Plot with wrapped text
+        ax.text(
+            *annotationPointSc3,
+            wrapped_text,
+            ha='left',
+            va='top',
+            fontsize = fontsize
+        )
+        
+        # #PAPC vs APG
+        # # Sc. 2
+        # x1 = 2.66
+        # x2 = 2.736
+        # papcLagSc2 = x2 - x1
+        
+        # ax.plot(x2, percentile_value, 'x', color='orange')
+        # xMean = (x1 + x2)/2
+        
+        
+        # ax.annotate(
+        #     '', 
+        #     xy = (xMean, percentile_value),
+        #     xytext = annotationPointPapc,
+        #     arrowprops = dict(arrowstyle='->', lw=arrowWidth, linestyle='--')
+        # )
+        
+        # # Sc. 3
+        # x1 = 1.74
+        # x2 = 1.817
+        # papcLagSc3 = x2 - x1
+        
+        # ax.plot(x2, percentile_value, 'x', color='orange')
+        # xMean = (x1 + x2)/2
+        
+        
+        # ax.annotate(
+        #     '', 
+        #     xy = (xMean, percentile_value),
+        #     xytext = annotationPointPapc,
+        #     arrowprops = dict(arrowstyle='->', lw=arrowWidth, linestyle='-.')
+        # )
+        # text = f'PAPC vs APG in Sc. 2 and Sc. 3. Minimum SE seen by top 90% of the users in PAPC of Sc. 2 lags by {papcLagSc2:.2f} while PAPC of Sc. 3 lags by {papcLagSc3:.2f}'
+
+        # # Wrap the text
+        # wrapped_text = '\n'.join(textwrap.fill(line, wrap_width) for line in text.split('\n'))
+
+        # # Plot with wrapped text
+        # ax.text(
+        #     *annotationPointPapc,
+        #     wrapped_text,
+        #     ha='left',
+        #     va='top',
+        #     fontsize = fontsize
+        # )
+        
+        # # ax.set_xlim(right=6)
+        ax.legend(loc='upper left')
+        fig.set_size_inches(10, 7)
+
+
     # Save figures after editing
     cdfPlotFile = os.path.join(outputFolder, f'{cdfFileName}.png')
-    fig.savefig(cdfPlotFile)
+    fig.savefig(cdfPlotFile, dpi=600, bbox_inches='tight')
+    cdfPlotFile = os.path.join(outputFolder, f'{cdfFileName}.pdf')
+    fig.savefig(cdfPlotFile, bbox_inches='tight')
+
     
     pdfPlotFile = os.path.join(outputFolder, f'{pdfFileName}.png')
     fig2.savefig(pdfPlotFile)
-    
+
 def individualPlots(resultsFolder, algoList, plotFolder, scenario, seMin):
 
     fig, ax = plt.subplots()
