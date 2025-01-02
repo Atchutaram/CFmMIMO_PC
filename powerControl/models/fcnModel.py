@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-import os
-from sklearn.preprocessing import StandardScaler
 
 from .rootModel import CommonParameters, RootNet
 from .utils import Norm
@@ -14,22 +12,25 @@ MODEL_NAME = 'FCN'
 class HyperParameters(CommonParameters):
 
     @classmethod
-    def intialize(cls, simulationParameters, systemParameters):
+    def initialize(cls, simulationParameters, systemParameters):
         
         cls.preInt(simulationParameters, systemParameters)
 
         #  Room for any additional model-specific configurations
-        cls.dropout = 0
         cls.inputSize = cls.M * cls.K
         cls.outputSize = cls.M * cls.K
         MK = 1 * cls.M * cls.K
         
         if (simulationParameters.scenario == 0):
-            cls.hiddenSize = int((1/(1-cls.dropout))*MK*4)
+            cls.hiddenSize = MK*4
         elif (simulationParameters.scenario == 1):
-            cls.hiddenSize = int((1/(1-cls.dropout))*MK/2)
+            cls.hiddenSize = int(MK/2)
+        elif (simulationParameters.scenario == 2):
+            cls.hiddenSize = int(MK/7)
+        elif (simulationParameters.scenario == 3):
+            cls.hiddenSize = int(MK/28)
         else:
-            cls.hiddenSize = int((1/(1-cls.dropout))*MK/7)
+            raise('Invalid Scenario Configuration')
 
         cls.outputShape = (-1, cls.M, cls.K)
         
@@ -45,21 +46,17 @@ class NeuralNet(RootNet):
         self.batchSize = HyperParameters.batchSize
         self.learningRate = HyperParameters.learningRate
         self.VARYING_STEP_SIZE = HyperParameters.VARYING_STEP_SIZE
-        self.gamma = HyperParameters.gamma
-        self.stepSize = HyperParameters.stepSize
+        self.lambdaLr = HyperParameters.lambdaLr
         
-        self.stepSize = HyperParameters.stepSize
         self.inputSize = HyperParameters.inputSize
         self.hiddenSize = HyperParameters.hiddenSize
         self.outputSize = HyperParameters.outputSize
         self.outputShape = HyperParameters.outputShape
-        self.dropout = HyperParameters.dropout
 
         self.hidden = lambda: nn.Sequential(
             nn.Linear(self.hiddenSize, self.hiddenSize),
             Norm(self.hiddenSize),
             nn.ReLU(),
-            nn.Dropout(p=self.dropout),
         )
         
         self.fcnFull = nn.Sequential(
@@ -67,7 +64,6 @@ class NeuralNet(RootNet):
             nn.Linear(self.inputSize, self.hiddenSize),
             Norm(self.hiddenSize),
             nn.ReLU(),
-            nn.Dropout(p=self.dropout),
             self.hidden(),
             nn.Linear(self.hiddenSize, self.outputSize),
             Norm(self.outputSize),
@@ -81,7 +77,7 @@ class NeuralNet(RootNet):
         output = self.fcnFull(x.view(-1, 1, self.inputSize))
         output = output.view(self.outputShape)
         
-        output = torch.nn.functional.softplus(output + 6, beta = 2)
+        output = torch.nn.functional.relu(output + 6)
         
         y = torch.exp(-output)
         

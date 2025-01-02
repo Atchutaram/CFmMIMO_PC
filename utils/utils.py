@@ -5,6 +5,34 @@ import time
 import shutil
 import sys
 from sys import exit
+import platform
+import psutil
+import cpuinfo  # Import the cpuinfo library
+
+
+def logSystemInfoAndLatency(simulationParameters, avgLatency):
+    osInfo = platform.platform()
+    platformCpuInfo = platform.processor()
+    cpuinfoCpuInfo = cpuinfo.get_cpu_info().get('brand_raw', 'Unknown Processor')
+    ramInfo = psutil.virtual_memory().total / (1024 ** 3)
+
+    fileName = "systemInfo"
+    if simulationParameters.varyingNumberOfUsersFlag:
+        fileName = fileName + "_varK"
+    if simulationParameters.minNumberOfUsersFlag:
+        fileName = fileName + "_minK"
+    
+    fileName = fileName + ".txt"
+
+    systemInfo = f"Operating System: {osInfo}\n" \
+                 f"Processor (Platform): {platformCpuInfo}\n" \
+                 f"Processor (CPUInfo): {cpuinfoCpuInfo}\n" \
+                 f"RAM: {ramInfo:.2f} GB\n"\
+                 f"avgLatency: {avgLatency}\n"
+
+    filePath = os.path.join(simulationParameters.resultsBase, fileName)
+    with open(filePath, "w") as file:
+        file.write(systemInfo)
 
 
 def cleanFolders():
@@ -12,7 +40,13 @@ def cleanFolders():
     import glob
     from utils.utils import deleteFolder
     
-    dirs = glob.glob("simID*/")
+    dirs = glob.glob("simId*/")
+    deleteFolder(*dirs)
+    
+    dirs = glob.glob("consolidatedResults/")
+    deleteFolder(*dirs)
+    
+    dirs = glob.glob("updatedResults/")
     deleteFolder(*dirs)
     
     print(f"Cleaned all! ")

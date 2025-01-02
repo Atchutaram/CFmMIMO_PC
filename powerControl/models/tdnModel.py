@@ -1,101 +1,103 @@
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
-import os
-import pickle
-from sklearn.preprocessing import StandardScaler
 
-from .rootModel import Mode, RootDataset, CommonParameters, RootNet
+from .rootModel import CommonParameters, RootNet
+from .utils import Norm
+from powerControl.testing import project2s
 
 
 MODEL_NAME = 'TDN'
 
-
 # Hyper-parameters
 class HyperParameters(CommonParameters):
-    sc = StandardScaler()
-    scPath = os.path.join(os.getcwd(), f'{MODEL_NAME}sc.pkl')
-    trainingDataPath = ''
 
     @classmethod
-    def intialize(cls, simulationParameters, systemParameters, isTestMode):
+    def initialize(cls, simulationParameters, systemParameters):
         
         cls.preInt(simulationParameters, systemParameters)
-        cls.hid = 50*cls.K
-        
-        if isTestMode:
-            cls.batchSize = 1
-            return
-        
-        if cls.scenario == 1:
-            cls.batchSize = 8 * 2
-        else:
-            cls.batchSize = 1
-        
-        trainDataset = cls.InpDataSet(
-                                            dataPath=cls.trainingDataPath,
-                                            normalizer=cls.sc,
-                                            mode=Mode.preProcessing,
-                                            numSamples=cls.numSamples,
-                                            device=torch.device('cpu')
-                                    )
-        trainLoader = DataLoader(dataset=trainDataset, batchSize=1, shuffle=False)
-        
-        for beta in trainLoader:
-            with torch.no_grad():
-                cls.sc.partial_fit(beta)
 
-        pickle.dump(cls.sc, open(cls.scPath, 'wb'))  # saving sc for loading later in testing phase
-        print(f'{cls.scPath} dumped!')
+        #  Room for any additional model-specific configurations
+        cls.inputSize = cls.K
+        cls.outputSize = cls.K
+        cls.numberOfAPs = cls.M
+        
+        if (simulationParameters.scenario == 0):
+            cls.hiddenSize = cls.K*11
+        elif (simulationParameters.scenario == 1):
+            cls.hiddenSize = cls.K*9
+        elif (simulationParameters.scenario == 2):
+            cls.hiddenSize = cls.K*5
+        elif (simulationParameters.scenario == 3):
+            cls.hiddenSize = cls.K*2
+        else:
+            raise('Invalid Scenario Configuration')
+
+        cls.outputShape = (-1, cls.M, cls.K)
+        
     
     
 
 class NeuralNet(RootNet):
-    def __init__(self, device, systemParameters, grads):
-        super(NeuralNet, self).__init__(device, systemParameters, grads)
-        
+    def __init__(self, systemParameters, grads):
+        super(NeuralNet, self).__init__(systemParameters, grads)
+
         self.numSamples = HyperParameters.numSamples
         self.numEpochs = HyperParameters.numEpochs
-        self.eta = HyperParameters.eta
         self.dataPath = HyperParameters.trainingDataPath
-        self.normalizer = HyperParameters.sc
+        self.valDataPath = HyperParameters.validationDataPath
         self.batchSize = HyperParameters.batchSize
         self.learningRate = HyperParameters.learningRate
         self.VARYING_STEP_SIZE = HyperParameters.VARYING_STEP_SIZE
-        self.gamma = HyperParameters.gamma
-        self.stepSize = HyperParameters.stepSize
-        K = HyperParameters.K
-        M = HyperParameters.M
-        hid = HyperParameters.hid
+        self.lambdaLr = HyperParameters.lambdaLr
+        
+        
+        self.inputSize = HyperParameters.inputSize
+        self.hiddenSize = HyperParameters.hiddenSize
+        self.outputSize = HyperParameters.outputSize
+        self.outputShape = HyperParameters.outputShape
+        self.numberOfAPs = HyperParameters.numberOfAPs
+
+        self.norm1 = Norm(self.inputSize)
         
         self.fcns = nn.ModuleList()
-        for _ in range(M):
+        for _ in range(self.numberOfAPs):
             self.fcns.append(
                 nn.Sequential(
-                    nn.Linear(K, hid),
+                    nn.Linear(self.inputSize, self.hiddenSize),
+                    Norm(self.hiddenSize),
                     nn.ReLU(),
-                    nn.Linear(hid, hid),
+                    nn.Linear(self.hiddenSize, self.hiddenSize),
+                    Norm(self.hiddenSize),
                     nn.ReLU(),
-                    nn.Linear(hid, K),
+                    nn.Linear(self.hiddenSize, self.hiddenSize),
+                    Norm(self.hiddenSize),
+                    nn.ReLU(),
+                    nn.Linear(self.hiddenSize, self.hiddenSize),
+                    Norm(self.hiddenSize),
+                    nn.ReLU(),
+                    nn.Linear(self.hiddenSize, self.outputSize),
+                    # Norm(self.outputSize),
                     )
             )
 
         self.name = MODEL_NAME
-        self.to(self.device)
 
 
     def forward(self, x):
         x, _ = x
+        x = self.norm1(x)
         x = torch.unsqueeze(x, 1)
-        decoded = []
+        output = []
         for m, FCN in enumerate(self.fcns):
-            decodedTemp = FCN(x[:, 0, m, :])
+            outputTemp = FCN(x[:, 0, m, :])
             
-            # so max final output after torch.exp is always between 0 and 1.
-            # This conditioning helps regularization.
-            decodedTemp = -self.relu(decodedTemp)
-            decodedTemp = (1/self.systemParameters.numberOfAntennas) * torch.exp(decodedTemp)
-            decoded.append(torch.unsqueeze(decodedTemp, 0))
+            outputTemp = torch.nn.functional.relu(outputTemp + 6)
+            outputTemp = torch.exp(-outputTemp)
+            norms = torch.norm(outputTemp, p=2, dim=1, keepdim=True)
+            outputTemp = self.N_invRoot * outputTemp / norms
+            output.append(torch.unsqueeze(outputTemp, 0))
         
-        decoded = torch.transpose(torch.cat(decoded), 0, 1).to(device=self.device)*1e-1
-        return decoded
+        output = torch.transpose(torch.cat(output), 0, 1)
+        
+        # output = project2s(output, self.N_invRoot)
+        return output

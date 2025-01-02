@@ -20,7 +20,7 @@ def initializeWeights(m):
 
 def deploy(model, testSample, phiCrossMat, modelName, device):
     importPath = findImportPath(modelName)
-    module = importlib.import_module(importPath, ".")  # imports the scenarios
+    # module = importlib.import_module(importPath, ".")  # imports the scenarios
     
     
 
@@ -49,11 +49,11 @@ def deploy(model, testSample, phiCrossMat, modelName, device):
         return mus_predicted
 
 def initializeHyperParams(modelName, simulationParameters, systemParameters):
-    # Ex: If model_name is 'ANN', it imports ANN_model module and initializes its hyper parameters.
+    # Ex: If model_name is 'TNN', it imports TNN_model module and initializes its hyper parameters.
     importPath = findImportPath(modelName)
-    module = importlib.import_module(importPath, ".")  # imports the scenarios
+    module = importlib.import_module(importPath, ".")  # imports the Models
     
-    module.HyperParameters.intialize(simulationParameters, systemParameters)
+    module.HyperParameters.initialize(simulationParameters, systemParameters)
 
 def loadTheLatestModelAndParamsIfExists(
                                             modelName,
@@ -62,9 +62,9 @@ def loadTheLatestModelAndParamsIfExists(
                                             grads,
                                             isTesting=False
                                         ):
-    # For Training mode, the function first imports the approriate model and initializes weights
+    # For Training mode, the function first imports the appropriate model and initializes weights
     importPath = findImportPath(modelName)
-    module = importlib.import_module(importPath, ".")  # imports the scenarios
+    module = importlib.import_module(importPath, ".")  # imports the Models
         
     model = module.NeuralNet(systemParameters, grads)
     model.apply(initializeWeights)
@@ -120,7 +120,7 @@ def attention(query, key, value, d_k, mask=None, dropout=None):
     return output  # dimension B x h x K x d_k
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, heads, M, dropout = 0.1):
+    def __init__(self, heads, M, dropout = 0):
         super().__init__()
         
         self.M = M
@@ -168,7 +168,7 @@ class MultiHeadAttention(nn.Module):
 
 class FeedForward(nn.Module):
 
-    def __init__(self, M, dropout = 0.1):
+    def __init__(self, M, dropout = 0):
         super().__init__() 
         
         dMid = int(1 / (1-dropout)) * M
@@ -201,7 +201,7 @@ class Norm(nn.Module):
 
 class EncoderLayer(nn.Module):
     
-    def __init__(self, M, heads, dropout=0.1):
+    def __init__(self, M, heads, dropout = 0):
         super().__init__()
         self.norm1 = Norm(M)
         self.norm2 = Norm(M)

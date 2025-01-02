@@ -46,8 +46,8 @@ class Args():
     
         parser = argparse.ArgumentParser(
             description=('Train or test the DNN for CFmMIMO downlink power control described in the'
-                        ' paper "ANN-Based Power Control Algorithm for the Downlink of Cell-Free '
-                        'Massive MIMO".')
+                        ' paper "Pilot Contamination Aware Transformer Neural Network for Downlink '
+                        'Power Control in Cell-Free Massive MIMO Networks.')
             )
 
         parser.add_argument(
@@ -56,7 +56,7 @@ class Args():
                 type=checkNonNegative,
                 help='All the logs and results folders use this non negative int id. Default 0.',
                 default="0",
-                metavar='simID', 
+                metavar='simId', 
             )
 
         parser.add_argument(
@@ -79,7 +79,11 @@ class Args():
                     2) TESTING            : Generates testing data, performs all the power control
                     algos upon same data, and plots the results.\n
                     3) PLOTTING_ONLY      : Plots the results of a test that is already done.\n
-                    4) ALL                : Train and then Test.\n""",
+                    4) ALL                : Train and then Test.\n
+                    5) CONSOL             : This is for generating consolidated plots once all the
+                    results of all the simIds are ready.\n
+                    6) LOCAL              : To Fetch the consolidated plots and do additional
+                    processing like annotation.\n""",
                 default=OperatingModes.ALL,
                 metavar='operatingMode',
             )
@@ -87,7 +91,7 @@ class Args():
         parser.add_argument(
                 '-sc',
                 '--scenario',
-                choices={"0", "1", "2"},
+                choices={"0", "1", "2", "3"},
                 help=('Takes [0-2] as input to pick one of the two scenarios described'
                       'in the paper.'),
                 default="0",
@@ -110,6 +114,15 @@ class Args():
                 help='Choose 1 for variable K and choose 0 for others.',
                 default="0",
                 metavar='varK',
+            )
+        parser.add_argument(
+                '-mk',
+                '--minK',
+                choices={"0", "1"},
+                help='Choose 1 for setting K=K_MIN and choose 0 for others.'
+                'Choice 1 is Invalid in training phase.',
+                default="0",
+                metavar='minK',
             )
 
         parser.add_argument(
@@ -149,6 +162,7 @@ class Args():
             self.scenario,
             self.randomPilotsFlag,
             self.varyingNumberOfUsersFlag,
+            self.minNumberOfUsersFlag,
             self.host,
             self.retain,
             self.clean
@@ -159,6 +173,7 @@ class Args():
                 args.scenario,
                 args.randomPilotsFlag,
                 args.varK,
+                args.minK,
                 args.host,
                 args.retain,
                 args.clean
@@ -177,6 +192,9 @@ class Args():
         if not self.operatingMode == OperatingModes.TRAINING:
             # Overwrites input argument 'numberOfSamples' if not 'TRAINING' phase.
             self.setNumberOfSamples(testingNumberOfSamples)
+        elif self.minNumberOfUsersFlag:
+            print('minK feature is not allowed in modes other than 2 and 3. Resetting to 0.')
+            self.minNumberOfUsersFlag = 0
 
         self.retain = (self.retain==1)  # Translating {0, 1} to {False, True}
         self.randomPilotsFlag = (self.randomPilotsFlag == 1)

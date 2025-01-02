@@ -63,6 +63,8 @@ def dataGen(simulationParameters, systemParameters, sampleId, validationData=Fal
                                             systemParameters.maxNumberOfUsers + 1,
                                             (1, )
                                     ).item()
+    if simulationParameters.minNumberOfUsersFlag:
+        numberOfUsers = systemParameters.minNumberOfUsers
 
     userConfig = getUserConfig(areaWidth, areaHeight, numberOfUsers, device)  # get user positions
     # distance mat for each pair of AP and user
@@ -78,7 +80,7 @@ def dataGen(simulationParameters, systemParameters, sampleId, validationData=Fal
     
     torch.seed()
     if simulationParameters.randomPilotsFlag:
-        reUsedPilotAllocation = torch.randint(0, systemParameters.Tp, (numberOfUsers,))
+        pilotSequence = torch.randint(0, systemParameters.Tp, (numberOfUsers,))
     else:
         additionalNumOfUsers = numberOfUsers - systemParameters.Tp
         uniquePilotAllocation = torch.randperm(systemParameters.Tp)
