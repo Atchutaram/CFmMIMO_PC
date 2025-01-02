@@ -46,6 +46,9 @@ def cleanFolders():
     dirs = glob.glob("consolidatedResults/")
     deleteFolder(*dirs)
     
+    dirs = glob.glob("updatedResults/")
+    deleteFolder(*dirs)
+    
     print(f"Cleaned all! ")
     exit()
 
