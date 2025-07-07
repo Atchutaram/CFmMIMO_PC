@@ -7,7 +7,7 @@ from .utils import EncoderLayer, Norm
 from powerControl.testing import project2s
 
 
-MODEL_NAME = 'TNN'
+MODEL_NAME = 'PAPC'
 
 # Hyper-parameters
 class HyperParameters(CommonParameters):
@@ -20,13 +20,13 @@ class HyperParameters(CommonParameters):
         #  Room for any additional model-specific configurations
         cls.heads = 5
         if (simulationParameters.scenario == 0):
-            cls.M2 = 8*cls.heads
+            cls.M2 = 8 * cls.heads
         elif (
                     (simulationParameters.scenario == 1) or
                     (simulationParameters.scenario == 2) or
                     (simulationParameters.scenario == 3)
             ):
-            cls.M2 = cls.M2Multiplier*cls.heads
+            cls.M2 = cls.M2Multiplier * cls.heads
         else:
             raise('Invalid Scenario Configuration')
     
@@ -44,16 +44,17 @@ class NeuralNet(RootNet):
         self.VARYING_STEP_SIZE = HyperParameters.VARYING_STEP_SIZE
         self.lambdaLr = HyperParameters.lambdaLr
         
-        heads = HyperParameters.heads
-        M2 = HyperParameters.M2
+        self.heads = HyperParameters.heads
+        self.M2 = HyperParameters.M2
 
         self.norm1 = Norm(M)
-        self.inpMapping = nn.Linear(M, M2)
-        self.norm2 = Norm(M2)
-        self.layer1 = EncoderLayer(M2, heads=heads)
-        self.layer2 = EncoderLayer(M2, heads=heads)
-        self.layer3 = EncoderLayer(M2, heads=heads)
-        self.otpMapping = nn.Linear(M2, M)
+        self.inpMapping = nn.Linear(M, self.M2)
+        self.norm2 = Norm(self.M2)
+        self.num_layers = 3
+        self.layers = nn.ModuleList([
+            EncoderLayer(self.M2, heads=self.heads) for _ in range(self.num_layers)
+        ])
+        self.otpMapping = nn.Linear(self.M2, M)
         self.norm3 = Norm(M)
 
         self.name = MODEL_NAME
@@ -61,19 +62,20 @@ class NeuralNet(RootNet):
 
     def forward(self, input):
         x, phiCrossMat = input
-        mask = torch.unsqueeze(phiCrossMat**2, dim=1)
+        mask = None
+        if phiCrossMat is not None:
+            mask = torch.unsqueeze(phiCrossMat ** 2, dim=1)
         x = x.transpose(1,2).contiguous()
         x = self.norm1(x)
         x = self.inpMapping(x)
         
         x = self.norm2(x)
-        x = self.layer1(x, mask=mask)
-        x = self.layer2(x, mask=mask)
-        x = self.layer3(x, mask=mask)
+        for layer in self.layers:
+            x = layer(x, mask=mask)
         
         x = self.otpMapping(x)
         x = self.norm3(x)
-        x = torch.nn.functional.relu(x.transpose(1,2).contiguous()+6)
+        x = torch.nn.functional.relu(x.transpose(1,2).contiguous() + 6)
         
         y = torch.exp(-x)
         output = project2s(y, self.N_invRoot)

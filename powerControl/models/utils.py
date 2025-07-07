@@ -49,7 +49,7 @@ def deploy(model, testSample, phiCrossMat, modelName, device):
         return mus_predicted
 
 def initializeHyperParams(modelName, simulationParameters, systemParameters):
-    # Ex: If model_name is 'TNN', it imports TNN_model module and initializes its hyper parameters.
+    # Ex: If model_name is 'PAPC', it imports PAPC_model module and initializes its hyper parameters.
     importPath = findImportPath(modelName)
     module = importlib.import_module(importPath, ".")  # imports the Models
     
@@ -108,7 +108,7 @@ def attention(query, key, value, d_k, mask=None, dropout=None):
     scores = (query @ key.transpose(-2, -1)) /  math.sqrt(d_k)
 
     if mask is not None:
-        scores = scores*mask
+        scores *= mask
     
     scores = F.softmax(scores, dim=-1)
     
@@ -120,7 +120,7 @@ def attention(query, key, value, d_k, mask=None, dropout=None):
     return output  # dimension B x h x K x d_k
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, heads, M, dropout = 0):
+    def __init__(self, heads, M, dropout = 0, uniformAttention = False):
         super().__init__()
         
         self.M = M
@@ -132,10 +132,13 @@ class MultiHeadAttention(nn.Module):
             exit()
 
         self.h = heads
+        self.uniformAttention = uniformAttention
         
-        self.qLinear = nn.Linear(M, M)
+        if not uniformAttention:
+            self.qLinear = nn.Linear(M, M)
+            self.kLinear = nn.Linear(M, M)
+        
         self.vLinear = nn.Linear(M, M)
-        self.kLinear = nn.Linear(M, M)
         self.dropout = nn.Dropout(dropout)
         self.out = nn.Linear(M, M)
     
@@ -147,23 +150,33 @@ class MultiHeadAttention(nn.Module):
         
         # perform linear operation and split into h heads
 
-        query = self.qLinear(x).view(B, -1, self.h, self.d_k)
-        key = self.kLinear(x).view(B, -1, self.h, self.d_k)
+        if not self.uniformAttention:
+            query = self.qLinear(x).view(B, -1, self.h, self.d_k)
+            key = self.kLinear(x).view(B, -1, self.h, self.d_k)
         value = self.vLinear(x).view(B, -1, self.h, self.d_k)
         
         # transpose to get dimensions B x h x K x d_k
-       
-        query = query.transpose(1,2)
-        key = key.transpose(1,2)
         value = value.transpose(1,2)
+        if self.uniformAttention:
+            scores = torch.ones(
+                (x.shape[1], x.shape[1]),
+                requires_grad=False,
+                device=x.device
+                )  # K x K
+            scores = F.softmax(scores, dim=-1)
+            if mask is not None:
+                scores = torch.einsum('abcd,cd->abcd', mask, scores)
 
-        scores = attention(query, key, value, self.d_k, mask, self.dropout)
+            output = scores @ value
+        else:
+            query = query.transpose(1,2)
+            key = key.transpose(1,2)
+            output = attention(query, key, value, self.d_k, mask, self.dropout)
 
         # concatenate heads and put through final linear layer
-        concat = scores.transpose(1,2).contiguous().view(B, -1, self.M)
+        output = output.transpose(1,2).contiguous().view(B, -1, self.M)
 
-        output = self.out(concat)
-        return output  # dimensions B x K x M
+        return self.out(output)  # dimensions B x K x M
 
 
 class FeedForward(nn.Module):
@@ -201,11 +214,11 @@ class Norm(nn.Module):
 
 class EncoderLayer(nn.Module):
     
-    def __init__(self, M, heads, dropout = 0):
+    def __init__(self, M, heads, dropout = 0, uniformAttention = False):
         super().__init__()
         self.norm1 = Norm(M)
         self.norm2 = Norm(M)
-        self.attn = MultiHeadAttention(heads, M, dropout)
+        self.attn = MultiHeadAttention(heads, M, dropout, uniformAttention)
         self.ff = FeedForward(M, dropout)
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)

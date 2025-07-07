@@ -5,7 +5,7 @@ from .modes import OperatingModes
 class SystemParameters:
     
     def __init__(self, simulationParameters):
-        defaultModels = ['TNN', 'FCN', ]
+        defaultModels = ['PAPC', 'FCN', ]
         if simulationParameters.scenario==0:
             coverageArea = 0.01  # in sq.Km
             maxNumberOfUsers = 4
@@ -14,6 +14,8 @@ class SystemParameters:
             models = defaultModels
 
         elif simulationParameters.scenario==1:
+            defaultModels.append('PAPCNM')
+            defaultModels.append('PAPCUA')
             coverageArea = 0.1  # in sq.Km
             maxNumberOfUsers = 20
             accessPointDensity = 1000
@@ -21,6 +23,7 @@ class SystemParameters:
             models = defaultModels
             
         elif simulationParameters.scenario==2:
+            defaultModels.append('PAPCNM')
             coverageArea = 0.1
             maxNumberOfUsers = 40
             accessPointDensity = 1000
@@ -28,7 +31,7 @@ class SystemParameters:
             models = defaultModels
             
         elif simulationParameters.scenario==3:
-            defaultModels = ['TNN',]
+            defaultModels = ['PAPC',]
             coverageArea = 0.1
             maxNumberOfUsers = 80
             accessPointDensity = 1000
@@ -39,7 +42,7 @@ class SystemParameters:
         #     coverageArea = 1
         #     maxNumberOfUsers = 500
         #     accessPointDensity = 2000
-        #     models = ['TNN',]  # Plan is to do ['AE-FCN', 'TNN']
+        #     models = ['PAPC',]  # Plan is to do ['AE-FCN', 'PAPC']
         else:
             raise('Invalid Scenario Configuration')
 

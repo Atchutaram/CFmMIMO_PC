@@ -10,7 +10,7 @@ import textwrap
 algoColorMap = {
     'EPA': 'tab:blue',
     'APG': 'tab:orange',
-    'TNN': 'tab:green',
+    'PAPC': 'tab:green',
     'FCN': 'tab:red',
     'TDN': 'tab:purple'
 }
@@ -52,6 +52,8 @@ def consolidatedPlots(figIdx, resultsFolders, algoLists, tags, tagsForNonML, plo
         seOut = fetchSeValues(resultsFolder, algoList, seMin)
         
         for algoId, algo in enumerate(algoList):
+            if algo in ['PAPCNM', 'PAPCUA']:
+                continue  # TBD: plan another fig for this.
             color = algoColorMap[algo]
             lineStyle = lineStyles[tagIndex % len(lineStyles)]
             
@@ -61,9 +63,14 @@ def consolidatedPlots(figIdx, resultsFolders, algoLists, tags, tagsForNonML, plo
             
             # Adjust label for clarity
             label = f'{algo} - {tag}'.replace('_', ' ')
-            label = f'{algo} - {tag}'.replace('TNN', 'PAPC')
             if algo in ['APG', 'EPA']:
                 label = f'{algo} - {tagForNonML}'.replace('_', ' ')
+            elif algo in ['PAPCNM']:
+                algo_temp = 'PAPC-NM'
+                label = f'{algo_temp} - {tagForNonML}'.replace('_', ' ')
+            elif algo in ['PAPCUA']:
+                algo_temp = 'PAPC-UA'
+                label = f'{algo_temp} - {tagForNonML}'.replace('_', ' ')
 
             # Plot CDF with specified color and line style
             ax.plot(
