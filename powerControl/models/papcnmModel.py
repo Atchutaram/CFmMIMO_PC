@@ -9,7 +9,7 @@ class HyperParameters(HP):
 
 class NeuralNet(PAPC):
     def __init__(self, systemParameters, grads):
-        super(NeuralNet, self).__init__(systemParameters, grads)
+        super(NeuralNet, self).__init__(systemParameters, grads, HP=HyperParameters)
         self.name = MODEL_NAME
 
 

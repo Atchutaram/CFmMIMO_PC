@@ -17,6 +17,28 @@ def initializeWeights(m):
         nn.init.kaiming_uniform_(m.weight.data)
         nn.init.constant_(m.bias.data, 0)
 
+def dumpAttention(model, testSample, phiCrossMat, modelName, device, dumpPath):
+    importPath = findImportPath(modelName)
+    # module = importlib.import_module(importPath, ".")  # imports the scenarios
+    
+    
+
+    with torch.no_grad():
+        testSample = torch.log(testSample)
+        testSampleShape = testSample.shape
+        testSample = testSample.reshape((1,-1)).to(device='cpu')
+        testSample.requires_grad=False
+        testSample = testSample.to(device=device, dtype=torch.float32).view(testSampleShape)
+        model.eval()
+        model.to(device=device)
+        
+        model.dumpAttention(
+                                [
+                                    testSample,
+                                    phiCrossMat.to(device=device, dtype=torch.float32)
+                                ],
+                                dumpPath
+                            )
 
 def deploy(model, testSample, phiCrossMat, modelName, device):
     importPath = findImportPath(modelName)
@@ -100,7 +122,7 @@ def get_nu_tensor(betas, systemParameters):
 
     return nuMat
     
-def attention(query, key, value, d_k, mask=None, dropout=None):
+def attention(query, key, value, d_k, mask=None, dropout=None, dumpPath=None):
 
     # query, key, value tensor are of dimension B x h x K x d_k
     # mask tensor is of dimension K x K
@@ -114,7 +136,8 @@ def attention(query, key, value, d_k, mask=None, dropout=None):
     
     if dropout is not None:
         scores = dropout(scores)
-        
+    if dumpPath is not None:
+        torch.save(scores, dumpPath)
     output = scores @ value
     
     return output  # dimension B x h x K x d_k
@@ -142,7 +165,7 @@ class MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.out = nn.Linear(M, M)
     
-    def forward(self, x, mask=None):
+    def forward(self, x, mask=None, dumpPath=None):
         
         # x is of dimension B x K x M
         B, _, _ = x.shape
@@ -171,7 +194,7 @@ class MultiHeadAttention(nn.Module):
         else:
             query = query.transpose(1,2)
             key = key.transpose(1,2)
-            output = attention(query, key, value, self.d_k, mask, self.dropout)
+            output = attention(query, key, value, self.d_k, mask, self.dropout, dumpPath=dumpPath)
 
         # concatenate heads and put through final linear layer
         output = output.transpose(1,2).contiguous().view(B, -1, self.M)
@@ -223,8 +246,8 @@ class EncoderLayer(nn.Module):
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)
         
-    def forward(self, x, mask):
-        x = x + self.dropout1(self.attn(x, mask))
+    def forward(self, x, mask, dumpPath=None):
+        x = x + self.dropout1(self.attn(x, mask, dumpPath))
         x = self.norm1(x)
         x = x + self.dropout2(self.ff(x))
         x = self.norm2(x)

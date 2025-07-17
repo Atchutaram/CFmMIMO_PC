@@ -14,7 +14,6 @@ class HyperParameters(CommonParameters):
 
     @classmethod
     def initialize(cls, simulationParameters, systemParameters):
-        
         cls.preInt(simulationParameters, systemParameters)
 
         #  Room for any additional model-specific configurations
@@ -32,20 +31,23 @@ class HyperParameters(CommonParameters):
     
 
 class NeuralNet(RootNet):
-    def __init__(self, systemParameters, grads):
+    def __init__(self, systemParameters, grads, HP=None):
         super(NeuralNet, self).__init__(systemParameters, grads)
-        M = HyperParameters.M
-        self.numSamples = HyperParameters.numSamples
-        self.numEpochs = HyperParameters.numEpochs
-        self.dataPath = HyperParameters.trainingDataPath
-        self.valDataPath = HyperParameters.validationDataPath
-        self.batchSize = HyperParameters.batchSize
-        self.learningRate = HyperParameters.learningRate
-        self.VARYING_STEP_SIZE = HyperParameters.VARYING_STEP_SIZE
-        self.lambdaLr = HyperParameters.lambdaLr
+        if HP is None:
+            HP = HyperParameters
         
-        self.heads = HyperParameters.heads
-        self.M2 = HyperParameters.M2
+        M = HP.M
+        self.numSamples = HP.numSamples
+        self.numEpochs = HP.numEpochs
+        self.dataPath = HP.trainingDataPath
+        self.valDataPath = HP.validationDataPath
+        self.batchSize = HP.batchSize
+        self.learningRate = HP.learningRate
+        self.VARYING_STEP_SIZE = HP.VARYING_STEP_SIZE
+        self.lambdaLr = HP.lambdaLr
+        
+        self.heads = HP.heads
+        self.M2 = HP.M2
 
         self.norm1 = Norm(M)
         self.inpMapping = nn.Linear(M, self.M2)
@@ -81,3 +83,30 @@ class NeuralNet(RootNet):
         output = project2s(y, self.N_invRoot)
         
         return output
+    
+    def dumpAttention(self, input, dumpPath):
+        x, phiCrossMat = input
+        mask = None
+        if phiCrossMat is not None:
+            mask = torch.unsqueeze(phiCrossMat ** 2, dim=1)
+        x = x.transpose(1,2).contiguous()
+        x = self.norm1(x)
+        x = self.inpMapping(x)
+        
+        x = self.norm2(x)
+        for i, layer in enumerate(self.layers):
+            if i == len(self.layers) - 1:
+                x = layer(x, mask=mask, dumpPath=dumpPath)
+            else:
+                x = layer(x, mask=mask)
+
+        
+        x = self.otpMapping(x)
+        x = self.norm3(x)
+        x = torch.nn.functional.relu(x.transpose(1,2).contiguous() + 6)
+        
+        y = torch.exp(-x)
+        output = project2s(y, self.N_invRoot)
+        
+        return output
+    

@@ -478,3 +478,26 @@ def consolidatedPlotter(figIdx, resultsFolders, algoLists, tags, tagsForNonML, p
 def localPlotEditor(figIdx, plotFolder, outputFolder):
     localPlotEdits(figIdx, plotFolder, outputFolder)
     plt.show()
+
+def visualizeAttentions(plotFolder, x):
+    num_images = x.shape[0]
+    cols = min(5, num_images)
+    rows = (num_images + cols - 1) // cols
+
+    fig, axes = plt.subplots(rows, cols, figsize=(3 * cols, 3 * rows))
+    axes = axes.flatten() if num_images > 1 else [axes]
+
+    for i in range(num_images):
+        axes[i].imshow(x[i].cpu().numpy(), cmap='gray', vmin=0, vmax=1)
+        axes[i].set_title(f"Image {i+1}")
+        axes[i].axis('off')
+
+    # Hide any unused subplots
+    for j in range(num_images, len(axes)):
+        axes[j].axis('off')
+
+    plt.tight_layout()
+    plt.show()
+    
+    insightsPlotFile = os.path.join(plotFolder, f'insights.png')
+    fig.savefig(insightsPlotFile)

@@ -90,8 +90,8 @@ You request is to retain {numberOfSamples} number of samples,
 while we have {oldNumberOfSamples} samples in the folder {folder}.
 Do you want to overwrite the data folder [y/n]? """)
                 if response == 'n':
-                    print(f('Retaining operation for the data folder cannot be performed!'
-                            'Either set the set the --samples option to {oldNumberOfSamples}'
+                    print(('Retaining operation for the data folder cannot be performed!'
+                            f'Either set the set the --samples option to {oldNumberOfSamples}'
                             'or --retain option to 0.'))
                     sys.exit()
     

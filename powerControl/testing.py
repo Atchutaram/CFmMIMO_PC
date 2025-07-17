@@ -5,9 +5,12 @@ from tqdm import tqdm
 
 from .utils import compute_v_mat, utilityComputation
 from .gradientHandler import grads, grad_f
-from .models.utils import loadTheLatestModelAndParamsIfExists, deploy, initializeHyperParams
-from utils.visualization import performancePlotter, consolidatedPlotter, localPlotEditor
-
+from .models.utils import (loadTheLatestModelAndParamsIfExists,
+                           deploy,
+                           initializeHyperParams,
+                           dumpAttention)
+from utils.visualization import (performancePlotter, consolidatedPlotter, localPlotEditor,
+                                 visualizeAttentions)
 
 
 def project2s(y, const):
@@ -298,3 +301,39 @@ def consolidatePlot(figIdx, resultsFolders, algoLists, tags, tagsForNonML, plotF
 
 def localPlotEditing(figIdx, plotFolder, outputFolder):
     localPlotEditor(figIdx, plotFolder, outputFolder)
+
+def visualizeInsights(simulationParameters, systemParameters):
+    modelsList = ['PAPC']
+
+    algoList = modelsList
+    
+    models = setupAndLoadDeepLearningModels(modelsList, simulationParameters, systemParameters)
+    numberOfSamples = simulationParameters.numberOfSamples
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    for sampleId in range(numberOfSamples):
+        filePathAndName = os.path.join(simulationParameters.dataFolder, f'betasSample{sampleId}.pt')
+        dumpPath = os.path.join(simulationParameters.resultsFolder, f'attnMat{sampleId}.pt')
+        m = torch.load(filePathAndName)
+
+        betas = m['betas'].to(dtype=torch.float32, device=device)
+        betas = torch.unsqueeze(betas, 0)
+
+        pilotSequence = m['pilotSequence']
+
+        phi = torch.index_select(systemParameters.phiOrth, 0, pilotSequence)
+        phiCrossMat = torch.abs(phi.conj() @ phi.T).to(dtype=torch.float32, device=device)
+        phiCrossMat = torch.unsqueeze(phiCrossMat**2, dim=0)
+        
+        for algoName in algoList:
+            
+            modelName = algoName  # this algo is deep learning algo
+            dumpAttention(models[modelName], betas, phiCrossMat, modelName, device, dumpPath)
+    
+    avg = 0
+    for sampleId in range(numberOfSamples):
+        x = torch.load(os.path.join(simulationParameters.resultsFolder, f'attnMat{sampleId}.pt'))
+        avg += x/numberOfSamples
+    
+    avg = avg.squeeze(0)
+    visualizeAttentions(simulationParameters.resultsFolder, avg)

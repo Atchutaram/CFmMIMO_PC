@@ -11,7 +11,7 @@ from parameters.modes import OperatingModes
 class SimulationParameters:
     # This class Maintains all the simulation parameter settings
     
-    def __init__(self, args):
+    def __init__(self, args, insightsFolder=None):
         (
             root,
             simulationId,
@@ -53,27 +53,32 @@ class SimulationParameters:
         self.device = torch.device(deviceTxt)
         
         self.rootPath = root
-        if self.operationMode == OperatingModes.TRAINING:
-            self.baseFolder = 'dataLogsTraining'
-        else:
-            self.baseFolder = 'dataLogsTesting'
-        
         if not os.path.exists(self.rootPath):
             print(self.rootPath)
             print('rootPath failure!')
             sys.exit()
-        
-        if (self.operationMode == OperatingModes.TRAINING):
+
+        if self.operationMode == OperatingModes.TRAINING:
             self.baseFolder = 'dataLogsTraining'
         else:
             self.baseFolder = 'dataLogsTesting'
 
         simIdName = f'simId{simulationId}'
+        
         self.baseFolderPath = os.path.join(self.rootPath, simIdName, self.baseFolder)
         if resultsBase is None:
             self.resultsBase = os.path.join(self.rootPath, simIdName)
         else:
             self.resultsBase = os.path.join(resultsBase, simIdName)
+        
+        
+        if self.operationMode == OperatingModes.INSIGHTS:
+            if insightsFolder is None:
+                print('dataFolder is expected as input in Operating mode 7')
+                exit()
+            self.baseFolderPath = os.path.join(insightsFolder, 'dataLogsInsights')
+            self.resultsFolder = os.path.join(insightsFolder, 'results')
+            self.plotFolder = os.path.join(insightsFolder, 'plots')
 
         if self.operationMode == OperatingModes.TESTING:
             handleDeletionAndCreation(self.resultsBase, forceRetain=True)
@@ -82,7 +87,7 @@ class SimulationParameters:
             
         self.dataFolder = os.path.join(self.baseFolderPath, "betas")
         self.validationDataFolder = os.path.join(self.baseFolderPath, "betasVal")
-        if not operatingMode==OperatingModes.TRAINING:
+        if operatingMode not in [OperatingModes.TRAINING, OperatingModes.INSIGHTS]:
             resTail = str(int(self.varyingNumberOfUsersFlag)) + str(int(self.randomPilotsFlag))
             if self.minNumberOfUsersFlag:
                 resTail = 'minK'
@@ -108,7 +113,7 @@ class SimulationParameters:
                                             retain
                                         )
 
-        else:
+        elif self.operationMode == OperatingModes.PLOTTING_ONLY:
             if not os.path.exists(self.resultsFolder) or len(os.listdir(self.resultsFolder)) == 0:
                 print(f'Either {self.resultsFolder} folder is missing or empty')
                 print('Run TESTING mode before running PLOTTING_ONLY mode!')

@@ -24,7 +24,7 @@ from parameters.sysParams import SystemParameters
 from generateBetaAndPilots import dataGen
 
 from powerControl.learning import train
-from powerControl.testing import testAndPlot
+from powerControl.testing import testAndPlot, visualizeInsights
 
 
 def dataGenAndTest(args):
@@ -46,7 +46,8 @@ if __name__ == '__main__':
     start = time.perf_counter()
 
     if (not (args.operatingMode == OperatingModes.CONSOL) and
-    not (args.operatingMode == OperatingModes.LOCAL)):
+    not (args.operatingMode == OperatingModes.LOCAL) and
+    not (args.operatingMode == OperatingModes.INSIGHTS)):
         simulationParameters = SimulationParameters(args)
         systemParameters = SystemParameters(simulationParameters)
 
@@ -80,7 +81,7 @@ if __name__ == '__main__':
             timeNow = time.perf_counter()
             print(f'Finished training in {round(timeNow - timeThen, 2)} second(s)')
             
-            if args.allModeFlag:
+            if args.fullChainFlag:
                 args.setOperatingMode(OperatingModes.TESTING)
                 args.setNumberOfSamples(testingNumberOfSamples)
                 
@@ -227,7 +228,7 @@ if __name__ == '__main__':
         plotFolder = os.path.join(plotFolderBase, f'Fig{figIdx}')
         handleDeletionAndCreation(plotFolder, retain=False)
         consolidatePlot(figIdx, resultsFolders, algoLists, tags, tagsForNonML, plotFolder)
-    else:
+    elif args.operatingMode == OperatingModes.LOCAL:
         from powerControl.testing import localPlotEditing
         from utils.utils import handleDeletionAndCreation
         
@@ -241,7 +242,31 @@ if __name__ == '__main__':
             outputFolder = os.path.join(outputFolderBase, f'Fig{figIdx}')
             handleDeletionAndCreation(outputFolder, retain=False)
             localPlotEditing(figIdx, plotFolder, outputFolder)
+    elif args.operatingMode == OperatingModes.INSIGHTS:
+        from utils.utils import handleDeletionAndCreation
+        from powerControl.testing import consolidatePlot
+
+        insightsFolder = os.path.join(args.root, 'insights')
+        handleDeletionAndCreation(insightsFolder, retain=False)
+
+        modelFolder = os.path.join(args.root, 'simID4', 'PAPC')
+        if not os.path.exists(modelFolder):
+            print(f'{modelFolder} does not exist')
+
+        args.simulationId = 4
+        args.scenario = 2
+        args.numberOfSamples = 10
+        simulationParameters = SimulationParameters(args, insightsFolder)
+        systemParameters = SystemParameters(simulationParameters)
+        
+        
+
+        if not os.listdir(simulationParameters.dataFolder):
+            for sampleId in range(args.numberOfSamples):
+                dataGen(simulationParameters, systemParameters, sampleId, forInsights=True)
+        
+        visualizeInsights(simulationParameters, systemParameters)
 
     # Compute and display the execution time.
     finish = time.perf_counter()
-    print(f'Finished in {round(finish - start, 2)} second(s)')
+    print(f'Finished in {round(finish - start, 2)} second(s)')#

@@ -42,7 +42,7 @@ def checkPositive(value):
 
 class Args():
 
-    def __init__(self, defaultNumberOfSamples, ):
+    def __init__(self, defaultNumberOfSamples):
     
         parser = argparse.ArgumentParser(
             description=('Train or test the DNN for CFmMIMO downlink power control described in the'
@@ -73,18 +73,21 @@ class Args():
                 '--mode',
                 choices=list(map(composite, OperatingModes)),
                 help=""" Operating mode.
-                    It takes the values from [1-4] to choose one of the following operation modes\n
+                    It takes the values from [1-7] to choose one of the following operation modes\n
                     1) TRAINING           : Generates training data and performs training upon all
                     algos.\n
                     2) TESTING            : Generates testing data, performs all the power control
                     algos upon same data, and plots the results.\n
                     3) PLOTTING_ONLY      : Plots the results of a test that is already done.\n
-                    4) ALL                : Train and then Test.\n
+                    4) FULL_CHAIN                : Train, Test, and then Plot.\n
                     5) CONSOL             : This is for generating consolidated plots once all the
                     results of all the simIds are ready.\n
                     6) LOCAL              : To Fetch the consolidated plots and do additional
-                    processing like annotation.\n""",
-                default=OperatingModes.ALL,
+                    processing like annotation.\n
+                    7) INSIGHTS           : To visualize attention matrix during inference for a
+                    few realizations with an intentionally designed setting where users having
+                    similar channels sharing pilots.\n""",
+                default=OperatingModes.FULL_CHAIN,
                 metavar='operatingMode',
             )
 
@@ -180,20 +183,23 @@ class Args():
             )
     )
             
-    def preProcessArgs(self, testingNumberOfSamples):
+    def preProcessArgs(self, testingNumberOfSamples, insightsNumberOfSamples = 10):
         
         # Translating integers to the element of OperatingModes
         self.operatingMode = list(OperatingModes)[self.operatingMode-1]
-        self.allModeFlag = self.operatingMode == OperatingModes.ALL
+        self.fullChainFlag = self.operatingMode == OperatingModes.FULL_CHAIN
 
-        if self.allModeFlag:
+        if self.fullChainFlag:
             self.operatingMode = OperatingModes.TRAINING
 
-        if not self.operatingMode == OperatingModes.TRAINING:
-            # Overwrites input argument 'numberOfSamples' if not 'TRAINING' phase.
+        # Overwrites input argument 'numberOfSamples' if not 'TRAINING' phase.
+        if self.operatingMode == OperatingModes.INSIGHTS:
+            self.setNumberOfSamples(insightsNumberOfSamples)
+        elif not self.operatingMode == OperatingModes.TRAINING:
             self.setNumberOfSamples(testingNumberOfSamples)
         elif self.minNumberOfUsersFlag:
-            print('minK feature is not allowed in modes other than 2 and 3. Resetting to 0.')
+            print('minK feature is not allowed in modes other than TESTING and PLOTTING_ONLY.'
+                   ' Resetting minK to 0.')
             self.minNumberOfUsersFlag = 0
 
         self.retain = (self.retain==1)  # Translating {0, 1} to {False, True}

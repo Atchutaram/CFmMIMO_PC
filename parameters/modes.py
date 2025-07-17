@@ -13,10 +13,13 @@ class OperatingModes(IntEnum):
     PLOTTING_ONLY = auto()
     
     # Performs training, testing, and then plotting.
-    ALL = auto()
+    FULL_CHAIN = auto()
     
     # Provides Consolidated plots from all simIds
     CONSOL = auto()
     
     # Fetches Consolidated plots To do further processing
     LOCAL = auto()
+    
+    # Visualizing attentions matrices.
+    INSIGHTS = auto()
