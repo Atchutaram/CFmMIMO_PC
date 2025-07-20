@@ -145,13 +145,11 @@ if __name__ == '__main__':
         algoLists = []
         tags = [
                     'Sc. 1',
-                    'Sc. 2',
-                    'Sc. 3',
                 ]
         tagsForNonML = None
         args.varyingNumberOfUsersFlag = False
         args.randomPilotsFlag = False
-        for loopId, simId in enumerate([3, 4, 5]):
+        for loopId, simId in enumerate([3]):
             args.simulationId = simId
             args.scenario = scenarioMapping(simId)
             simulationParameters = SimulationParameters(args)
@@ -167,15 +165,39 @@ if __name__ == '__main__':
         handleDeletionAndCreation(plotFolder, retain=False)
         consolidatePlot(figIdx, resultsFolders, algoLists, tags, tagsForNonML, plotFolder)
         
-        
         figIdx = 3
         resultsFolders = []
         algoLists = []
         tags = [
-                    'Sc. 3 with Var K',
+                    'Sc. 2',
                 ]
         tagsForNonML = None
-        args.varyingNumberOfUsersFlag = True
+        args.varyingNumberOfUsersFlag = False
+        args.randomPilotsFlag = False
+        for loopId, simId in enumerate([4]):
+            args.simulationId = simId
+            args.scenario = scenarioMapping(simId)
+            simulationParameters = SimulationParameters(args)
+            systemParameters = SystemParameters(simulationParameters)
+            resultsFolders.append(simulationParameters.resultsFolder)
+            
+            algoList = systemParameters.models
+            algoList.append('APG')
+            algoList.remove('FCN')
+            algoLists.append(algoList)
+        
+        plotFolder = os.path.join(plotFolderBase, f'Fig{figIdx}')
+        handleDeletionAndCreation(plotFolder, retain=False)
+        consolidatePlot(figIdx, resultsFolders, algoLists, tags, tagsForNonML, plotFolder)
+        
+        figIdx = 4
+        resultsFolders = []
+        algoLists = []
+        tags = [
+                    'Sc. 3',
+                ]
+        tagsForNonML = None
+        args.varyingNumberOfUsersFlag = False
         args.randomPilotsFlag = False
         for loopId, simId in enumerate([5]):
             args.simulationId = simId
@@ -185,7 +207,6 @@ if __name__ == '__main__':
             resultsFolders.append(simulationParameters.resultsFolder)
             
             algoList = systemParameters.models
-            algoList.append('EPA')
             algoList.append('APG')
             algoLists.append(algoList)
         
@@ -193,41 +214,56 @@ if __name__ == '__main__':
         handleDeletionAndCreation(plotFolder, retain=False)
         consolidatePlot(figIdx, resultsFolders, algoLists, tags, tagsForNonML, plotFolder)
         
-        
-        figIdx = 4
+        figIdx = 5
         resultsFolders = []
         algoLists = []
         tags = [
+                    'Sc. 3 with Var K',
                     'Trained on Sc. 2 - Tested on Sc. 2',
                     'Trained on Sc. 3 - Tested on Sc. 2',
                 ]
         tagsForNonML =  [
+                            'Sc. 3 with Var K',
                             'Sc. 2',
                             'Sc. 3',
                         ]
-        args.varyingNumberOfUsersFlag = False
-        args.randomPilotsFlag = False
-        args.minNumberOfUsersFlag = False
-        for loopId, simId in enumerate([4, 5]):
+
+        # Predefine simulation IDs in the desired order
+        simIds = [5, 4, 5]
+
+        # Predefine flags for each iteration
+        varyingNumberOfUsersFlags = [True, False, False]
+        randomPilotsFlags = [False, False, False]
+        minNumberOfUsersFlags = [False, False, True]
+
+        for loopId, simId in enumerate(simIds):
+            # Set args based on predefined flags
             args.simulationId = simId
-            if loopId==1:
-                args.minNumberOfUsersFlag = True
-            
+            args.varyingNumberOfUsersFlag = varyingNumberOfUsersFlags[loopId]
+            args.randomPilotsFlag = randomPilotsFlags[loopId]
+            args.minNumberOfUsersFlag = minNumberOfUsersFlags[loopId]
+
             args.scenario = scenarioMapping(simId)
             simulationParameters = SimulationParameters(args)
             systemParameters = SystemParameters(simulationParameters)
             resultsFolders.append(simulationParameters.resultsFolder)
-            
+
+            # Build algoList
             algoList = systemParameters.models
-            if loopId==0:
-                algoList.append('EPA')
-                algoList.append('APG')
+            if 'FCN' in algoList:
+                algoList.remove('FCN')
+            if 'PAPCNM' in algoList:
+                algoList.remove('PAPCNM')
+            if loopId in [0, 1]:
+                    algoList.append('APG')  # Only for first part of trained-on-Sc2
+
             algoLists.append(algoList)
-            tags.append(str(simId))
-        
+
+        # Plotting
         plotFolder = os.path.join(plotFolderBase, f'Fig{figIdx}')
         handleDeletionAndCreation(plotFolder, retain=False)
         consolidatePlot(figIdx, resultsFolders, algoLists, tags, tagsForNonML, plotFolder)
+
     elif args.operatingMode == OperatingModes.LOCAL:
         from powerControl.testing import localPlotEditing
         from utils.utils import handleDeletionAndCreation
@@ -256,17 +292,22 @@ if __name__ == '__main__':
         args.simulationId = 4
         args.scenario = 2
         args.numberOfSamples = 10
-        simulationParameters = SimulationParameters(args, insightsFolder)
-        systemParameters = SystemParameters(simulationParameters)
         
-        
+        ins = [True, True, False]
+        packs = [False, True, False]
+        for experiment, (forInsights, packFirstTp) in enumerate(zip(ins, packs)):
+            baseFolder = os.path.join(insightsFolder, f'Exp{experiment}')
+            handleDeletionAndCreation(baseFolder, retain=False)
+            simulationParameters = SimulationParameters(args, baseFolder)
+            systemParameters = SystemParameters(simulationParameters)
 
-        if not os.listdir(simulationParameters.dataFolder):
-            for sampleId in range(args.numberOfSamples):
-                dataGen(simulationParameters, systemParameters, sampleId, forInsights=True)
-        
-        visualizeInsights(simulationParameters, systemParameters)
-
+            if not os.listdir(simulationParameters.dataFolder):
+                for sampleId in range(args.numberOfSamples):
+                    dataGen(simulationParameters, systemParameters, sampleId,
+                            forInsights=forInsights, packFirstTp=packFirstTp)
+            
+            visualizeInsights(simulationParameters, systemParameters)
+            
     # Compute and display the execution time.
     finish = time.perf_counter()
     print(f'Finished in {round(finish - start, 2)} second(s)')#

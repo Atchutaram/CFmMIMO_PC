@@ -3,7 +3,8 @@ import torch
 import os
 
 
-def getUserConfig(areaWidth, areaHeight, numberOfUsers, device, forInsights=False, Tp=None):
+def getUserConfig(areaWidth, areaHeight, numberOfUsers, device, 
+                  forInsights=False, Tp=None, packFirstTp=False):
     areaDims = torch.tensor(
         [areaWidth, areaHeight],
         device=device,
@@ -14,6 +15,7 @@ def getUserConfig(areaWidth, areaHeight, numberOfUsers, device, forInsights=Fals
     torch.seed()
 
     assert not forInsights or Tp is not None, "Tp must not be None when forInsights is True"
+    assert not packFirstTp or forInsights, "packFirstTp can only be True when forInsights is True"
     if not forInsights or Tp <= numberOfUsers:
         randVec = torch.rand(
                             (2, numberOfUsers),
@@ -26,14 +28,25 @@ def getUserConfig(areaWidth, areaHeight, numberOfUsers, device, forInsights=Fals
 
     userList = []
 
-    # 1. First Tp users — random as before
-    randVec = torch.rand(
+    # 1. First Tp users
+    if not packFirstTp:
+        # Original random placement (backward compatible)
+        randVec = torch.rand(
                             (2, Tp),
                             device=device,
                             requires_grad=False,
                             dtype=torch.float32
                         ) - 0.5
-    baseUsers = torch.einsum('d,dm->md', areaDims, randVec)
+        baseUsers = torch.einsum('d,dm->md', areaDims, randVec)
+    else:
+        # New: tightly pack first Tp users in a small circle
+        radius = 0.05 * torch.mean(areaDims).item()
+        theta = 2 * torch.pi * torch.rand(Tp, device=device)
+        r = radius * torch.sqrt(torch.rand(Tp, device=device))
+        x = r * torch.cos(theta)
+        y = r * torch.sin(theta)
+        baseUsers = torch.stack((x, y), dim=1)
+
     userList.append(baseUsers)
 
     # 2. Precompute epsilon in physical units
@@ -43,24 +56,18 @@ def getUserConfig(areaWidth, areaHeight, numberOfUsers, device, forInsights=Fals
     remaining = numberOfUsers - Tp
     for i in range(remaining):
         if i % 2 == 0:
-            # Even: nearby user around user i (from baseUsers)
-            center = baseUsers[i]  # shape: (2,)
-
-            # Sample uniformly from a disk of radius epsilon
+            center = baseUsers[i]
             r = torch.sqrt(torch.rand(1, device=device)) * epsilon
             theta = 2 * torch.pi * torch.rand(1, device=device)
             offset = torch.cat((r * torch.cos(theta), r * torch.sin(theta)))
-            newUser = (center + offset).unsqueeze(0)  # shape: (1, 2)
+            newUser = (center + offset).unsqueeze(0)
         else:
-            # Odd: random user in full area
             randVec = torch.rand((2,), device=device) - 0.5
-            newUser = (areaDims * randVec).unsqueeze(0)  # shape: (1, 2)
+            newUser = (areaDims * randVec).unsqueeze(0)
 
         userList.append(newUser)
 
-    # 4. Concatenate all user positions
-    userConfig = torch.cat(userList, dim=0).to(device)  # shape: (numberOfUsers, 2)
-
+    userConfig = torch.cat(userList, dim=0).to(device)
     return userConfig
 
 def get_dMat(userConfig, apMinusRef):
@@ -91,7 +98,7 @@ def getLSFs(L, d0, d1, log_d0, log_d1, sigma_sh, dMat, device):
     return betas
 
 def dataGen(simulationParameters, systemParameters, sampleId, validationData=False,
-            forInsights=False):
+            forInsights=False, packFirstTp=False):
     if validationData:
         filePath = simulationParameters.validationDataFolder
     else:
@@ -113,7 +120,7 @@ def dataGen(simulationParameters, systemParameters, sampleId, validationData=Fal
 
     Tp = systemParameters.Tp
     userConfig = getUserConfig(areaWidth, areaHeight, numberOfUsers, device,
-                               forInsights=forInsights, Tp=Tp)  # get user positions
+                               forInsights=forInsights, Tp=Tp, packFirstTp=packFirstTp)  # get user positions
     # distance mat for each pair of AP and user
     dMat = get_dMat(userConfig, systemParameters.apMinusRef)
 

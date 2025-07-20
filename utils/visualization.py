@@ -12,7 +12,8 @@ algoColorMap = {
     'APG': 'tab:orange',
     'PAPC': 'tab:green',
     'FCN': 'tab:red',
-    'TDN': 'tab:purple'
+    'PAPCNM': 'tab:purple',
+    'PAPCUA': 'tab:cyan'
 }
 
 # Predefined line styles
@@ -52,8 +53,6 @@ def consolidatedPlots(figIdx, resultsFolders, algoLists, tags, tagsForNonML, plo
         seOut = fetchSeValues(resultsFolder, algoList, seMin)
         
         for algoId, algo in enumerate(algoList):
-            if algo in ['PAPCNM', 'PAPCUA']:
-                continue  # TBD: plan another fig for this.
             color = algoColorMap[algo]
             lineStyle = lineStyles[tagIndex % len(lineStyles)]
             
@@ -480,24 +479,20 @@ def localPlotEditor(figIdx, plotFolder, outputFolder):
     plt.show()
 
 def visualizeAttentions(plotFolder, x):
-    num_images = x.shape[0]
-    cols = min(5, num_images)
-    rows = (num_images + cols - 1) // cols
+    # 1. Average across heads (dim 0)
+    x_avg = torch.mean(x, dim=0)  # shape: (N, N)
 
-    fig, axes = plt.subplots(rows, cols, figsize=(3 * cols, 3 * rows))
-    axes = axes.flatten() if num_images > 1 else [axes]
-
-    for i in range(num_images):
-        axes[i].imshow(x[i].cpu().numpy(), cmap='gray', vmin=0, vmax=1)
-        axes[i].set_title(f"Image {i+1}")
-        axes[i].axis('off')
-
-    # Hide any unused subplots
-    for j in range(num_images, len(axes)):
-        axes[j].axis('off')
-
+    # 2. Plot single heatmap
+    plt.figure(figsize=(6, 5))
+    plt.imshow(x_avg.cpu().numpy(), cmap='viridis', vmin=0, vmax=1)
+    plt.title("Attention Scores")
+    plt.colorbar(label="Score")
+    plt.xlabel("Key/User Index")
+    plt.ylabel("Query/User Index")
     plt.tight_layout()
+
+    # 3. Save first, then show
+    insightsPlotFile = os.path.join(plotFolder, "insights.png")
+    plt.savefig(insightsPlotFile)  
     plt.show()
-    
-    insightsPlotFile = os.path.join(plotFolder, f'insights.png')
-    fig.savefig(insightsPlotFile)
+    plt.close()

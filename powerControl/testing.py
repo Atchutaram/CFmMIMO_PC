@@ -336,4 +336,4 @@ def visualizeInsights(simulationParameters, systemParameters):
         avg += x/numberOfSamples
     
     avg = avg.squeeze(0)
-    visualizeAttentions(simulationParameters.resultsFolder, avg)
+    visualizeAttentions(simulationParameters.plotFolder, avg)
