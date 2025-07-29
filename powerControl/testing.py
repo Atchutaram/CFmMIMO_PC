@@ -338,19 +338,19 @@ def postProcessRangeK(simulationParameters, systemParameters):
                     algo = match.group(1)
                     algo_file_map.setdefault(algo, []).append(os.path.join(folder_path, fname))
 
-        # Step 3: For each algorithm, compute 10th percentile per sample and average
+        # Step 3: For each algorithm, compute average per sample and average across samples
         for algo, filepaths in algo_file_map.items():
-            per_sample_10th = []
+            per_sample_means = []
 
             for filepath in filepaths:
                 data = torch.load(filepath)
                 result_sample = data['resultSample'].reshape(-1)
-                percentile = torch.quantile(result_sample, 0.1)
-                per_sample_10th.append(percentile)
+                mean_val = result_sample.mean()
+                per_sample_means.append(mean_val)
 
-            if per_sample_10th:
-                avg_10th = torch.stack(per_sample_10th).mean()
-                algo_to_values.setdefault(algo, []).append(avg_10th)
+            if per_sample_means:
+                avg_mean = torch.stack(per_sample_means).mean()
+                algo_to_values.setdefault(algo, []).append(avg_mean)
 
     # Convert per-algo lists to tensors
     for algo in algo_to_values:

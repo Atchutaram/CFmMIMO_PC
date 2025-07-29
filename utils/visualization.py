@@ -493,13 +493,13 @@ def visualizeRangeK(sorted_K_values, algo_to_values, fileFolder):
             marker='o'
         )
 
-    plt.title("10th Percentile vs. K for Each Algorithm")
+    plt.title("Average SE vs. K for Each Algorithm")
     plt.xlabel("K")
-    plt.ylabel("Average 10th Percentile of Result Sample")
+    plt.ylabel("Average SE per user")
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    filePath = os.path.join(fileFolder, 'SE_Vs_K.png')
+    filePath = os.path.join(fileFolder, 'Mean_Vs_K.png')
     plt.savefig(filePath)
     print(f"Plot saved to {filePath}")
     plt.show()
