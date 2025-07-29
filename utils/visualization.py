@@ -24,7 +24,8 @@ def fetchSeValues(resultsFolder, algoList, seMin):
     seOut = [[] for _ in algoList]
     for file in os.listdir(resultsFolder):
         for algoId, algo in enumerate(algoList):
-            if algo in file:
+            expectedPrefix = f'{algo}ResultsSample'
+            if file.startswith(expectedPrefix):
                 filePathAndName = os.path.join(resultsFolder, file)
                 tempArray = torch.load(filePathAndName)
                 if seMin:
