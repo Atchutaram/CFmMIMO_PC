@@ -20,6 +20,3 @@ class OperatingModes(IntEnum):
     
     # Fetches Consolidated plots To do further processing
     LOCAL = auto()
-    
-    # Visualizing attentions matrices.
-    INSIGHTS = auto()

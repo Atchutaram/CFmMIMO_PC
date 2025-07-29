@@ -83,10 +83,7 @@ class Args():
                     5) CONSOL             : This is for generating consolidated plots once all the
                     results of all the simIds are ready.\n
                     6) LOCAL              : To Fetch the consolidated plots and do additional
-                    processing like annotation.\n
-                    7) INSIGHTS           : To visualize attention matrix during inference for a
-                    few realizations with an intentionally designed setting where users having
-                    similar channels sharing pilots.\n""",
+                    processing like annotation.\n""",
                 default=OperatingModes.FULL_CHAIN,
                 metavar='operatingMode',
             )
@@ -156,6 +153,15 @@ class Args():
                     'sc.pkl. If clean opting is enabled, the other options will be ignored.'),
             )
 
+        parser.add_argument(
+                '-rk',
+                '--rangeK',
+                choices={"0", "1"},
+                help=('Choose 1 to test on different fixed K values.'),
+                default="0",
+                metavar='rangeK',
+            )
+
         args = parser.parse_args()
         
         (
@@ -168,7 +174,8 @@ class Args():
             self.minNumberOfUsersFlag,
             self.host,
             self.retain,
-            self.clean
+            self.clean,
+            self.rangeK
         ) = map(int, (
                 args.simulationId,
                 args.samples,
@@ -179,11 +186,12 @@ class Args():
                 args.minK,
                 args.host,
                 args.retain,
-                args.clean
+                args.clean,
+                args.rangeK
             )
     )
             
-    def preProcessArgs(self, testingNumberOfSamples, insightsNumberOfSamples = 10):
+    def preProcessArgs(self, testingNumberOfSamples):
         
         # Translating integers to the element of OperatingModes
         self.operatingMode = list(OperatingModes)[self.operatingMode-1]
@@ -193,9 +201,7 @@ class Args():
             self.operatingMode = OperatingModes.TRAINING
 
         # Overwrites input argument 'numberOfSamples' if not 'TRAINING' phase.
-        if self.operatingMode == OperatingModes.INSIGHTS:
-            self.setNumberOfSamples(insightsNumberOfSamples)
-        elif not self.operatingMode == OperatingModes.TRAINING:
+        if not self.operatingMode == OperatingModes.TRAINING:
             self.setNumberOfSamples(testingNumberOfSamples)
         elif self.minNumberOfUsersFlag:
             print('minK feature is not allowed in modes other than TESTING and PLOTTING_ONLY.'

@@ -24,7 +24,7 @@ from parameters.sysParams import SystemParameters
 from generateBetaAndPilots import dataGen
 
 from powerControl.learning import train
-from powerControl.testing import testAndPlot, visualizeInsights
+from powerControl.testing import testAndPlot, postProcessRangeK
 
 
 def dataGenAndTest(args):
@@ -47,7 +47,7 @@ if __name__ == '__main__':
 
     if (not (args.operatingMode == OperatingModes.CONSOL) and
     not (args.operatingMode == OperatingModes.LOCAL) and
-    not (args.operatingMode == OperatingModes.INSIGHTS)):
+    not (args.rangeK)):
         simulationParameters = SimulationParameters(args)
         systemParameters = SystemParameters(simulationParameters)
 
@@ -184,6 +184,8 @@ if __name__ == '__main__':
             algoList = systemParameters.models
             algoList.append('APG')
             algoList.remove('FCN')
+            if 'PAPCUA' in algoList:
+                algoList.remove('PAPCUA')
             algoLists.append(algoList)
         
         plotFolder = os.path.join(plotFolderBase, f'Fig{figIdx}')
@@ -208,6 +210,10 @@ if __name__ == '__main__':
             
             algoList = systemParameters.models
             algoList.append('APG')
+            
+            if 'PAPCUA' in algoList:
+                algoList.remove('PAPCUA')
+            
             algoLists.append(algoList)
         
         plotFolder = os.path.join(plotFolderBase, f'Fig{figIdx}')
@@ -218,23 +224,23 @@ if __name__ == '__main__':
         resultsFolders = []
         algoLists = []
         tags = [
-                    'Sc. 3 with Var K',
                     'Trained on Sc. 2 - Tested on Sc. 2',
                     'Trained on Sc. 3 - Tested on Sc. 2',
+                    'Sc. 3 with Var K',
                 ]
         tagsForNonML =  [
-                            'Sc. 3 with Var K',
                             'Sc. 2',
                             'Sc. 3',
+                            'Sc. 3 with Var K',
                         ]
 
         # Predefine simulation IDs in the desired order
-        simIds = [5, 4, 5]
+        simIds = [4, 5, 5]
 
         # Predefine flags for each iteration
-        varyingNumberOfUsersFlags = [True, False, False]
+        varyingNumberOfUsersFlags = [False, False, True]
         randomPilotsFlags = [False, False, False]
-        minNumberOfUsersFlags = [False, False, True]
+        minNumberOfUsersFlags = [False, True, False]
 
         for loopId, simId in enumerate(simIds):
             # Set args based on predefined flags
@@ -254,8 +260,10 @@ if __name__ == '__main__':
                 algoList.remove('FCN')
             if 'PAPCNM' in algoList:
                 algoList.remove('PAPCNM')
-            if loopId in [0, 1]:
-                    algoList.append('APG')  # Only for first part of trained-on-Sc2
+            if 'PAPCUA' in algoList:
+                algoList.remove('PAPCUA')
+            if loopId !=1:
+                algoList.insert(0, 'APG')   # Only for first part of trained-on-Sc2
 
             algoLists.append(algoList)
 
@@ -278,35 +286,29 @@ if __name__ == '__main__':
             outputFolder = os.path.join(outputFolderBase, f'Fig{figIdx}')
             handleDeletionAndCreation(outputFolder, retain=False)
             localPlotEditing(figIdx, plotFolder, outputFolder)
-    elif args.operatingMode == OperatingModes.INSIGHTS:
-        from utils.utils import handleDeletionAndCreation
-        from powerControl.testing import consolidatePlot
-
-        insightsFolder = os.path.join(args.root, 'insights')
-        handleDeletionAndCreation(insightsFolder, retain=False)
-
-        modelFolder = os.path.join(args.root, 'simID4', 'PAPC')
-        if not os.path.exists(modelFolder):
-            print(f'{modelFolder} does not exist')
-
-        args.simulationId = 4
-        args.scenario = 2
-        args.numberOfSamples = 10
-        
-        ins = [True, True, False]
-        packs = [False, True, False]
-        for experiment, (forInsights, packFirstTp) in enumerate(zip(ins, packs)):
-            baseFolder = os.path.join(insightsFolder, f'Exp{experiment}')
-            handleDeletionAndCreation(baseFolder, retain=False)
-            simulationParameters = SimulationParameters(args, baseFolder)
+    elif args.rangeK:
+        for numberOfUsers in range(40, 90, 10):
+            args.numberOfSamples = 50
+            args.fixedNumUsers = numberOfUsers
+            args.operatingMode = OperatingModes.TESTING
+            args.simulationId = 5
+            args.scenario = 3
+            args.varyingNumberOfUsersFlag = False
+            args.randomPilotsFlag = False
+            args.minNumberOfUsersFlag = False
+            
+            simulationParameters = SimulationParameters(args)
             systemParameters = SystemParameters(simulationParameters)
 
+            # Generating test data.
             if not os.listdir(simulationParameters.dataFolder):
+                    
                 for sampleId in range(args.numberOfSamples):
-                    dataGen(simulationParameters, systemParameters, sampleId,
-                            forInsights=forInsights, packFirstTp=packFirstTp)
+                    # Generates Train/Test data
+                    dataGen(simulationParameters, systemParameters, sampleId)
             
-            visualizeInsights(simulationParameters, systemParameters)
+            avgLatency = testAndPlot(simulationParameters, systemParameters, plottingOnly=False, testingOnly=True)
+        postProcessRangeK(simulationParameters, systemParameters)
             
     # Compute and display the execution time.
     finish = time.perf_counter()

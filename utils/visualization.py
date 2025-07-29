@@ -478,21 +478,27 @@ def localPlotEditor(figIdx, plotFolder, outputFolder):
     localPlotEdits(figIdx, plotFolder, outputFolder)
     plt.show()
 
-def visualizeAttentions(plotFolder, x):
-    # 1. Average across heads (dim 0)
-    x_avg = torch.mean(x, dim=0)  # shape: (N, N)
+def visualizeRangeK(sorted_K_values, algo_to_values, fileFolder):
 
-    # 2. Plot single heatmap
-    plt.figure(figsize=(6, 5))
-    plt.imshow(x_avg.cpu().numpy(), cmap='viridis', vmin=0, vmax=1)
-    plt.title("Attention Scores")
-    plt.colorbar(label="Score")
-    plt.xlabel("Key/User Index")
-    plt.ylabel("Query/User Index")
+    plt.figure()
+
+    for algo, values in algo_to_values.items():
+        color = algoColorMap.get(algo, "black")  # default to black if not mapped
+        plt.plot(
+            sorted_K_values.numpy(), 
+            values.numpy(), 
+            label=algo, 
+            color=color, 
+            marker='o'
+        )
+
+    plt.title("10th Percentile vs. K for Each Algorithm")
+    plt.xlabel("K")
+    plt.ylabel("Average 10th Percentile of Result Sample")
+    plt.legend()
+    plt.grid(True)
     plt.tight_layout()
-
-    # 3. Save first, then show
-    insightsPlotFile = os.path.join(plotFolder, "insights.png")
-    plt.savefig(insightsPlotFile)  
+    filePath = os.path.join(fileFolder, 'SE_Vs_K.png')
+    plt.savefig(filePath)
+    print(f"Plot saved to {filePath}")
     plt.show()
-    plt.close()

@@ -3,8 +3,7 @@ import torch
 import os
 
 
-def getUserConfig(areaWidth, areaHeight, numberOfUsers, device, 
-                  forInsights=False, Tp=None, packFirstTp=False):
+def getUserConfig(areaWidth, areaHeight, numberOfUsers, device):
     areaDims = torch.tensor(
         [areaWidth, areaHeight],
         device=device,
@@ -13,61 +12,13 @@ def getUserConfig(areaWidth, areaHeight, numberOfUsers, device,
     )
 
     torch.seed()
-
-    assert not forInsights or Tp is not None, "Tp must not be None when forInsights is True"
-    assert not packFirstTp or forInsights, "packFirstTp can only be True when forInsights is True"
-    if not forInsights or Tp <= numberOfUsers:
-        randVec = torch.rand(
-                            (2, numberOfUsers),
-                            device=device,
-                            requires_grad=False,
-                            dtype=torch.float32
-                        ) - 0.5
-        userConfig = torch.einsum('d,dm->md ', areaDims, randVec).to(device)
-        return userConfig
-
-    userList = []
-
-    # 1. First Tp users
-    if not packFirstTp:
-        # Original random placement (backward compatible)
-        randVec = torch.rand(
-                            (2, Tp),
-                            device=device,
-                            requires_grad=False,
-                            dtype=torch.float32
-                        ) - 0.5
-        baseUsers = torch.einsum('d,dm->md', areaDims, randVec)
-    else:
-        # New: tightly pack first Tp users in a small circle
-        radius = 0.05 * torch.mean(areaDims).item()
-        theta = 2 * torch.pi * torch.rand(Tp, device=device)
-        r = radius * torch.sqrt(torch.rand(Tp, device=device))
-        x = r * torch.cos(theta)
-        y = r * torch.sin(theta)
-        baseUsers = torch.stack((x, y), dim=1)
-
-    userList.append(baseUsers)
-
-    # 2. Precompute epsilon in physical units
-    epsilon = 0.05 * torch.mean(areaDims).item()
-
-    # 3. Remaining users: alternating pattern
-    remaining = numberOfUsers - Tp
-    for i in range(remaining):
-        if i % 2 == 0:
-            center = baseUsers[i]
-            r = torch.sqrt(torch.rand(1, device=device)) * epsilon
-            theta = 2 * torch.pi * torch.rand(1, device=device)
-            offset = torch.cat((r * torch.cos(theta), r * torch.sin(theta)))
-            newUser = (center + offset).unsqueeze(0)
-        else:
-            randVec = torch.rand((2,), device=device) - 0.5
-            newUser = (areaDims * randVec).unsqueeze(0)
-
-        userList.append(newUser)
-
-    userConfig = torch.cat(userList, dim=0).to(device)
+    randVec = torch.rand(
+                        (2, numberOfUsers),
+                        device=device,
+                        requires_grad=False,
+                        dtype=torch.float32
+                    ) - 0.5
+    userConfig = torch.einsum('d,dm->md ', areaDims, randVec).to(device)
     return userConfig
 
 def get_dMat(userConfig, apMinusRef):
@@ -97,8 +48,7 @@ def getLSFs(L, d0, d1, log_d0, log_d1, sigma_sh, dMat, device):
     betas = 10 ** (PL / 10)
     return betas
 
-def dataGen(simulationParameters, systemParameters, sampleId, validationData=False,
-            forInsights=False, packFirstTp=False):
+def dataGen(simulationParameters, systemParameters, sampleId, validationData=False):
     if validationData:
         filePath = simulationParameters.validationDataFolder
     else:
@@ -107,7 +57,9 @@ def dataGen(simulationParameters, systemParameters, sampleId, validationData=Fal
     areaWidth = systemParameters.areaWidth
     areaHeight = systemParameters.areaHeight
 
-    if not simulationParameters.varyingNumberOfUsersFlag:
+    if simulationParameters.rangeK:
+        numberOfUsers = simulationParameters.fixedNumUsers
+    elif not simulationParameters.varyingNumberOfUsersFlag:
         numberOfUsers = systemParameters.maxNumberOfUsers
     else:
         numberOfUsers = torch.randint(
@@ -115,12 +67,11 @@ def dataGen(simulationParameters, systemParameters, sampleId, validationData=Fal
                                             systemParameters.maxNumberOfUsers + 1,
                                             (1, )
                                     ).item()
-    if simulationParameters.minNumberOfUsersFlag:
+    if simulationParameters.minNumberOfUsersFlag and not simulationParameters.rangeK:
         numberOfUsers = systemParameters.minNumberOfUsers
 
     Tp = systemParameters.Tp
-    userConfig = getUserConfig(areaWidth, areaHeight, numberOfUsers, device,
-                               forInsights=forInsights, Tp=Tp, packFirstTp=packFirstTp)  # get user positions
+    userConfig = getUserConfig(areaWidth, areaHeight, numberOfUsers, device)  # get user positions
     # distance mat for each pair of AP and user
     dMat = get_dMat(userConfig, systemParameters.apMinusRef)
 
@@ -137,18 +88,12 @@ def dataGen(simulationParameters, systemParameters, sampleId, validationData=Fal
         pilotSequence = torch.randint(0, Tp, (numberOfUsers,))
     else:
         uniquePilotAllocation = torch.randperm(Tp)
-        if forInsights:
-            # Repeat the uniquePilotAllocation pattern deterministically
-            repeatCount = (numberOfUsers + Tp - 1) // Tp  # ceil division
-            fullPilotSequence = uniquePilotAllocation.repeat(repeatCount)[:numberOfUsers]
-            pilotSequence = fullPilotSequence
+        additionalNumOfUsers = numberOfUsers - Tp
+        if additionalNumOfUsers <= 0:
+            pilotSequence = uniquePilotAllocation[:numberOfUsers]
         else:
-            additionalNumOfUsers = numberOfUsers - Tp
-            if additionalNumOfUsers <= 0:
-                pilotSequence = uniquePilotAllocation[:numberOfUsers]
-            else:
-                reUsedPilotAllocation = torch.randint(0, Tp, (additionalNumOfUsers,))
-                pilotSequence = torch.cat((uniquePilotAllocation, reUsedPilotAllocation), dim=0)
+            reUsedPilotAllocation = torch.randint(0, Tp, (additionalNumOfUsers,))
+            pilotSequence = torch.cat((uniquePilotAllocation, reUsedPilotAllocation), dim=0)
 
     m = {'betas': betas.to('cpu'), 'pilotSequence': pilotSequence}
     torch.save(m, os.path.join(filePath, f'betasSample{sampleId}.pt'))

@@ -11,7 +11,7 @@ from parameters.modes import OperatingModes
 class SimulationParameters:
     # This class Maintains all the simulation parameter settings
     
-    def __init__(self, args, insightsFolder=None):
+    def __init__(self, args):
         (
             root,
             simulationId,
@@ -23,6 +23,7 @@ class SimulationParameters:
             randomPilotsFlag,
             varyingNumberOfUsersFlag,
             minNumberOfUsersFlag,
+            rangeK,
         ) = (
                 args.root,
                 args.simulationId,
@@ -34,6 +35,7 @@ class SimulationParameters:
                 args.randomPilotsFlag,
                 args.varyingNumberOfUsersFlag,
                 args.minNumberOfUsersFlag,
+                args.rangeK,
             )
         
         self.numberOfSamples = numberOfSamples
@@ -45,6 +47,12 @@ class SimulationParameters:
         self.varyingNumberOfUsersFlag = varyingNumberOfUsersFlag
         self.minNumberOfUsersFlag = minNumberOfUsersFlag
         self.simulationId = simulationId
+        self.rangeK = rangeK
+        if rangeK:
+            if scenario!=3 and simulationId!=5:
+                print(f'for rangeK operation only sc.3 and simId 5 are allowed!')
+                exit()
+            self.fixedNumUsers = args.fixedNumUsers
         
         if (torch.cuda.is_available() and (not (self.operationMode==OperatingModes.TESTING))):
             deviceTxt = "cuda"
@@ -71,15 +79,6 @@ class SimulationParameters:
         else:
             self.resultsBase = os.path.join(resultsBase, simIdName)
         
-        
-        if self.operationMode == OperatingModes.INSIGHTS:
-            if insightsFolder is None:
-                print('dataFolder is expected as input in Operating mode 7')
-                exit()
-            self.baseFolderPath = os.path.join(insightsFolder, 'dataLogsInsights')
-            self.resultsFolder = os.path.join(insightsFolder, 'results')
-            self.plotFolder = os.path.join(insightsFolder, 'plots')
-
         if self.operationMode == OperatingModes.TESTING:
             handleDeletionAndCreation(self.resultsBase, forceRetain=True)
             
@@ -87,7 +86,13 @@ class SimulationParameters:
             
         self.dataFolder = os.path.join(self.baseFolderPath, "betas")
         self.validationDataFolder = os.path.join(self.baseFolderPath, "betasVal")
-        if operatingMode not in [OperatingModes.TRAINING, OperatingModes.INSIGHTS]:
+        if self.rangeK:
+            self.plotFolder = os.path.join(self.resultsBase, "plots_fixed")
+            self.resultsBase = os.path.join(self.resultsBase, "results_fixed")
+            handleDeletionAndCreation(self.resultsBase, forceRetain=True)
+            handleDeletionAndCreation(self.plotFolder, forceRetain=True)
+            self.resultsFolder = os.path.join(self.resultsBase, f"K_{self.fixedNumUsers:02d}")
+        elif operatingMode != OperatingModes.TRAINING:
             resTail = str(int(self.varyingNumberOfUsersFlag)) + str(int(self.randomPilotsFlag))
             if self.minNumberOfUsersFlag:
                 resTail = 'minK'
@@ -105,7 +110,8 @@ class SimulationParameters:
             
             if not operatingMode==OperatingModes.TRAINING:
                 handleDeletionAndCreation(self.resultsFolder)
-                handleDeletionAndCreation(self.plotFolder, forceRetain= True)
+                if not self.rangeK:
+                    handleDeletionAndCreation(self.plotFolder, forceRetain= True)
             else:
                 handleDeletionAndCreation(
                                             self.validationDataFolder,

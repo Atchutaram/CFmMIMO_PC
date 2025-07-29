@@ -24,6 +24,7 @@ class SystemParameters:
             
         elif simulationParameters.scenario==2:
             defaultModels.append('PAPCNM')
+            defaultModels.append('PAPCUA')
             coverageArea = 0.1
             maxNumberOfUsers = 40
             accessPointDensity = 1000

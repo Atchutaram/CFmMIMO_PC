@@ -1,6 +1,7 @@
 import os
 import torch
 import time
+import re
 from tqdm import tqdm
 
 from .utils import compute_v_mat, utilityComputation
@@ -10,7 +11,7 @@ from .models.utils import (loadTheLatestModelAndParamsIfExists,
                            initializeHyperParams,
                            dumpAttention)
 from utils.visualization import (performancePlotter, consolidatedPlotter, localPlotEditor,
-                                 visualizeAttentions)
+                                 visualizeRangeK)
 
 
 def project2s(y, const):
@@ -249,7 +250,7 @@ def setupAndLoadDeepLearningModels(modelsToRun, simulationParameters, systemPara
     return models
 
 
-def testAndPlot(simulationParameters, systemParameters, plottingOnly):
+def testAndPlot(simulationParameters, systemParameters, plottingOnly, testingOnly=False):
     device = torch.device('cpu')  # Need to force this. We do not want to test in GPU.
     algoList = ['EPA', 'APG', ]
     modelsList = systemParameters.models  # deep learning models
@@ -287,12 +288,13 @@ def testAndPlot(simulationParameters, systemParameters, plottingOnly):
 
         saveLatency(resultsPath, avgLatency)
 
-    performancePlotter(
-                            resultsPath,
-                            algoList,
-                            simulationParameters.plotFolder,
-                            simulationParameters.scenario
-                        )
+    if not testingOnly:
+        performancePlotter(
+                                resultsPath,
+                                algoList,
+                                simulationParameters.plotFolder,
+                                simulationParameters.scenario
+                            )
     print(avgLatency)
     return avgLatency
 
@@ -302,38 +304,59 @@ def consolidatePlot(figIdx, resultsFolders, algoLists, tags, tagsForNonML, plotF
 def localPlotEditing(figIdx, plotFolder, outputFolder):
     localPlotEditor(figIdx, plotFolder, outputFolder)
 
-def visualizeInsights(simulationParameters, systemParameters):
-    modelsList = ['PAPC']
+def postProcessRangeK(simulationParameters, systemParameters):
+    resultsBase = simulationParameters.resultsBase
+    subfolder_pattern = re.compile(r"K_(\d{2})")
 
-    algoList = modelsList
-    
-    models = setupAndLoadDeepLearningModels(modelsList, simulationParameters, systemParameters)
-    numberOfSamples = simulationParameters.numberOfSamples
-    
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    for sampleId in range(numberOfSamples):
-        filePathAndName = os.path.join(simulationParameters.dataFolder, f'betasSample{sampleId}.pt')
-        dumpPath = os.path.join(simulationParameters.resultsFolder, f'attnMat{sampleId}.pt')
-        m = torch.load(filePathAndName)
+    K_values = []
+    K_folders = []
 
-        betas = m['betas'].to(dtype=torch.float32, device=device)
-        betas = torch.unsqueeze(betas, 0)
+    # Step 1: Identify K subfolders and extract numeric values
+    for name in os.listdir(resultsBase):
+        full_path = os.path.join(resultsBase, name)
+        match = subfolder_pattern.fullmatch(name)
+        if match and os.path.isdir(full_path):
+            K = int(match.group(1))
+            K_values.append(K)
+            K_folders.append((K, full_path))
+    # Sort by K value
+    K_folders.sort(key=lambda x: x[0])
+    sorted_K_values = torch.tensor([k for k, _ in K_folders], dtype=torch.float32)
 
-        pilotSequence = m['pilotSequence']
+    algo_to_values = {}
 
-        phi = torch.index_select(systemParameters.phiOrth, 0, pilotSequence)
-        phiCrossMat = torch.abs(phi.conj() @ phi.T).to(dtype=torch.float32, device=device)
-        phiCrossMat = torch.unsqueeze(phiCrossMat**2, dim=0)
-        
-        for algoName in algoList:
-            
-            modelName = algoName  # this algo is deep learning algo
-            dumpAttention(models[modelName], betas, phiCrossMat, modelName, device, dumpPath)
-    
-    avg = 0
-    for sampleId in range(numberOfSamples):
-        x = torch.load(os.path.join(simulationParameters.resultsFolder, f'attnMat{sampleId}.pt'))
-        avg += x/numberOfSamples
-    
-    avg = avg.squeeze(0)
-    visualizeAttentions(simulationParameters.plotFolder, avg)
+    # Step 2: Process each K folder
+    for K, folder_path in K_folders:
+        files = os.listdir(folder_path)
+
+        # Group files by algorithm
+        algo_file_map = {}
+        for fname in files:
+            if fname.endswith(".pt"):
+                match = re.match(r"([a-zA-Z0-9_]+)ResultsSample\d+\.pt", fname)
+                if match:
+                    algo = match.group(1)
+                    algo_file_map.setdefault(algo, []).append(os.path.join(folder_path, fname))
+
+        # Step 3: For each algorithm, compute 10th percentile per sample and average
+        for algo, filepaths in algo_file_map.items():
+            per_sample_10th = []
+
+            for filepath in filepaths:
+                data = torch.load(filepath)
+                result_sample = data['resultSample'].reshape(-1)
+                percentile = torch.quantile(result_sample, 0.1)
+                per_sample_10th.append(percentile)
+
+            if per_sample_10th:
+                avg_10th = torch.stack(per_sample_10th).mean()
+                algo_to_values.setdefault(algo, []).append(avg_10th)
+
+    # Convert per-algo lists to tensors
+    for algo in algo_to_values:
+        algo_to_values[algo] = torch.stack(algo_to_values[algo])
+
+    fileFolder = simulationParameters.plotFolder
+
+    # Send to visualization (no-op for now)
+    visualizeRangeK(sorted_K_values, algo_to_values, fileFolder)
