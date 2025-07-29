@@ -348,13 +348,14 @@ def postProcessRangeK(simulationParameters, systemParameters):
                 mean_val = result_sample.mean()
                 per_sample_means.append(mean_val)
 
-            if per_sample_means:
+            if per_sample_means and algo!='EPA':
                 avg_mean = torch.stack(per_sample_means).mean()
                 algo_to_values.setdefault(algo, []).append(avg_mean)
 
     # Convert per-algo lists to tensors
     for algo in algo_to_values:
-        algo_to_values[algo] = torch.stack(algo_to_values[algo])
+        if algo!='EPA':
+            algo_to_values[algo] = torch.stack(algo_to_values[algo])
 
     fileFolder = simulationParameters.plotFolder
 
